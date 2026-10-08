@@ -88,3 +88,10 @@ class TestLoginE2E:
         login_page.submit()
         login_page.assert_rejected("username", "auth")
         login_page.assert_no_server_details()
+
+    @pytest.mark.captcha
+    @pytest.mark.oracle("captcha")
+    def test_tc13_empty_captcha(self, login_page, credentials):
+        login_page.fill(*credentials, captcha="")
+        login_page.submit()
+        login_page.assert_rejected("captcha")
