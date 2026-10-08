@@ -104,3 +104,10 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha=wrong_code)
         login_page.submit()
         login_page.assert_rejected("captcha", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.oracle("captcha")
+    def test_tc15_whitespace_captcha(self, login_page, credentials):
+        login_page.fill(*credentials, captcha="   ")
+        login_page.submit()
+        login_page.assert_rejected("captcha")
