@@ -120,13 +120,13 @@ class ReferenceServer:
             state["attempts"] += 1
             captcha = number >= 13 and (number != 22 or state["attempts"] >= 2)
         action = f"/Login?case={case}"
-        style = "" if captcha else ' style="display:none"'
+        captcha_fields = f'''<input type="hidden" name="spacer1"><input type="hidden" name="spacer2"><input type="hidden" name="spacer3"><input type="hidden" name="spacer4">
+<input placeholder="Mã bảo mật" type="text" name="captcha">''' if captcha else '<input type="hidden" name="spacer1">'
         body = f'''<!doctype html><html><head><meta charset="utf-8"><title>Local reference form</title></head><body>
 <div><div class="main"><div class="right"><div class="form">
 <div id="error" role="alert">{html.escape(error)}</div>
 <form method="post" action="{action}">
-<input type="hidden" name="spacer1"><input type="hidden" name="spacer2"><input type="hidden" name="spacer3"><input type="hidden" name="spacer4">
-<input placeholder="Mã bảo mật" type="text" name="captcha"{style}>
+{captcha_fields}
 <input placeholder="Tên đăng nhập" type="text" name="username">
 <input placeholder="Mật khẩu" type="password" name="userpwd">
 <input type="submit" class="submit_login" value="Đăng nhập">

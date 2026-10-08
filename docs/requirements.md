@@ -40,13 +40,15 @@ Mỗi ca bắt đầu bằng phiên trình duyệt mới, mở `/Login`, chờ f
 
 Dùng nguyên CSS selector dưới đây với Selenium `By.CSS_SELECTOR`. HTML ghi nhận đúng theo dữ liệu người dùng cung cấp, chưa phải kết quả chạy kiểm chứng.
 
-| Thành phần | CSS selector | Element |
-| --- | --- | --- |
-| Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(6)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
-| Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(7)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
-| CAPTCHA | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(5)` | `<input placeholder="Mã bảo mật" type="text" name="captcha">` |
+| Trạng thái | Trường | CSS selector | Element |
+| --- | --- | --- | --- |
+| Không có CAPTCHA | Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(2)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
+| Không có CAPTCHA | Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(3)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
+| Có CAPTCHA | Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(6)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
+| Có CAPTCHA | Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(7)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
+| Có CAPTCHA | CAPTCHA | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(5)` | `<input placeholder="Mã bảo mật" type="text" name="captcha">` |
 
-Khi triển khai, kiểm tra mỗi selector khớp duy nhất một phần tử và đúng `name`, `type`, `placeholder` mong đợi trước khi nhập. `nth-child` tính vị trí trong toàn bộ phần tử con; cần kiểm tra ở cả trạng thái CAPTCHA hiện và ẩn. Nếu DOM đổi khiến selector không khớp, báo lỗi locator, không âm thầm nhập vào ô khác hoặc tự thay selector.
+Khi triển khai, kiểm tra mỗi selector khớp duy nhất một phần tử và đúng `name`, `type`, `placeholder` mong đợi trước khi nhập. `nth-child` tính vị trí trong toàn bộ phần tử con; cần kiểm tra ở cả trạng thái CAPTCHA hiện và ẩn. Chọn cặp (2, 3) khi CAPTCHA không hiển thị và (6, 7) khi CAPTCHA hiển thị; chọn lại sau mỗi phản hồi submit/refresh. Nếu selector theo trạng thái không khớp, báo lỗi locator, không nhập vào ô khác hoặc tự dùng selector ngoài hai bộ đã cung cấp.
 
 Locator hỗ trợ thao tác submit và quan sát kết quả:
 
@@ -91,5 +93,6 @@ Locator hỗ trợ thao tác submit và quan sát kết quả:
 - Chỉ triển khai các ID còn trong bảng; ca thiếu điều kiện được SKIPPED/BLOCKED rõ lý do, không coi là đã kiểm thử.
 - Báo cáo có ID, môi trường, thời điểm, kết quả, lý do skip/block và bằng chứng lỗi. Còn BLOCKED thì ghi phạm vi chưa xác minh, không tuyên bố hoàn tất toàn bộ kiểm thử.
 - Kế hoạch chi tiết: [plan.md](plan.md). Bước hiện tại chỉ hoàn thiện yêu cầu và kế hoạch, chưa triển khai hoặc thực thi Selenium.
+
 
 

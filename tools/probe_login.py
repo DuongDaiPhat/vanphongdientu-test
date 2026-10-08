@@ -23,7 +23,12 @@ def main():
         driver.get(settings.base_url)
         page = LoginPage(driver, settings)
         page.visible(page.FORM)
-        for field, (selector, name, kind, placeholder) in page.FIELDS.items():
+        results["captcha_visible"] = page.captcha_visible()
+        for field, (name, kind, placeholder) in page.FIELDS.items():
+            if field == "captcha" and not results["captcha_visible"]:
+                results["fields"][field] = {"status": "SKIPPED", "reason": "CAPTCHA absent in this session"}
+                continue
+            selector = page.selector_for(field)
             elements = driver.find_elements(By.CSS_SELECTOR, selector)
             attributes = [{key: el.get_attribute(key) for key in ("name", "type", "placeholder")} for el in elements]
             passed = len(elements) == 1 and attributes[0] == {"name": name, "type": kind, "placeholder": placeholder}
@@ -36,7 +41,7 @@ def main():
     path = settings.report_dir / "locator-probe.json"
     path.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(results, ensure_ascii=True, indent=2))
-    return 0 if all(row["status"] == "PASS" for row in results["fields"].values()) else 1
+    return 0 if all(row["status"] != "FAIL" for row in results["fields"].values()) else 1
 
 
 if __name__ == "__main__":

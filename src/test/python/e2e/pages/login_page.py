@@ -19,15 +19,17 @@ class LocatorMismatch(AssertionError):
 
 class LoginPage(BasePage):
     PREFIX = "body > div > div.main > div.right > div.form > form > "
-    USERNAME = PREFIX + "input[type=text]:nth-child(6)"
-    PASSWORD = PREFIX + "input[type=password]:nth-child(7)"
+    USERNAME_WITH_CAPTCHA = PREFIX + "input[type=text]:nth-child(6)"
+    PASSWORD_WITH_CAPTCHA = PREFIX + "input[type=password]:nth-child(7)"
+    USERNAME_WITHOUT_CAPTCHA = PREFIX + "input[type=text]:nth-child(2)"
+    PASSWORD_WITHOUT_CAPTCHA = PREFIX + "input[type=password]:nth-child(3)"
     CAPTCHA = PREFIX + "input[type=text]:nth-child(5)"
     FORM = "body > div > div.main > div.right > div.form > form"
     SUBMIT = FORM + " > input.submit_login[type='submit']"
     FIELDS = {
-        "username": (USERNAME, "username", "text", "Tên đăng nhập"),
-        "password": (PASSWORD, "userpwd", "password", "Mật khẩu"),
-        "captcha": (CAPTCHA, "captcha", "text", "Mã bảo mật"),
+        "username": ("username", "text", "Tên đăng nhập"),
+        "password": ("userpwd", "password", "Mật khẩu"),
+        "captcha": ("captcha", "text", "Mã bảo mật"),
     }
 
     def open(self, url=None):
@@ -38,8 +40,15 @@ class LoginPage(BasePage):
         self.captcha_visible()
         return self
 
+    def selector_for(self, field):
+        if field == "captcha":
+            return self.CAPTCHA
+        suffix = "WITH_CAPTCHA" if self.captcha_visible() else "WITHOUT_CAPTCHA"
+        return getattr(self, field.upper() + "_" + suffix)
+
     def verify_field(self, field):
-        selector, name, kind, placeholder = self.FIELDS[field]
+        selector = self.selector_for(field)
+        name, kind, placeholder = self.FIELDS[field]
         matches = self.driver.find_elements(By.CSS_SELECTOR, selector)
         if len(matches) != 1:
             raise LocatorMismatch(f"{field}: supplied CSS selector matched {len(matches)} elements; expected exactly one: {selector}")
@@ -52,15 +61,14 @@ class LoginPage(BasePage):
     def captcha_visible(self):
         # Semantic lookup detects a misplaced CAPTCHA; never used to type or submit.
         semantic = self.driver.find_elements(By.CSS_SELECTOR, self.FORM + " input[name='captcha']")
-        positional = self.driver.find_elements(By.CSS_SELECTOR, self.CAPTCHA)
-        if not semantic and not positional:
+        if not any(element.is_displayed() for element in semantic):
             return False
         return self.verify_field("captcha").is_displayed()
 
     def fill(self, username, password, captcha=None):
         self.verify_field("username")
         self.verify_field("password")
-        actual = {"username": self.type(self.USERNAME, username), "password": self.type(self.PASSWORD, password)}
+        actual = {"username": self.type(self.selector_for("username"), username), "password": self.type(self.selector_for("password"), password)}
         if captcha is not None:
             self.verify_field("captcha")
             actual["captcha"] = self.type(self.CAPTCHA, captcha)
@@ -70,7 +78,7 @@ class LoginPage(BasePage):
         self._previous_form = self.driver.find_element(By.CSS_SELECTOR, self.FORM)
         self._previous_errors = self.error_text()
         if enter:
-            self.visible(self.PASSWORD).send_keys(Keys.ENTER)
+            self.visible(self.selector_for("password")).send_keys(Keys.ENTER)
         else:
             self.click(self.SUBMIT)
 

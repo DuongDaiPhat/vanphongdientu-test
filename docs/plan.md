@@ -12,13 +12,15 @@ Bảng yêu cầu sau khi thu hẹp còn **22 ca**, gồm **10 ca CAPTCHA**. ID 
 
 Các selector và element dưới đây do người dùng cung cấp. Triển khai nguyên CSS selector bằng `By.CSS_SELECTOR`, chưa coi là đã chạy kiểm chứng trên trình duyệt.
 
-| Trường | CSS selector | Element |
-| --- | --- | --- |
-| Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(6)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
-| Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(7)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
-| CAPTCHA | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(5)` | `<input placeholder="Mã bảo mật" type="text" name="captcha">` |
+| Trạng thái | Trường | CSS selector | Element |
+| --- | --- | --- | --- |
+| Không có CAPTCHA | Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(2)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
+| Không có CAPTCHA | Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(3)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
+| Có CAPTCHA | Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(6)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
+| Có CAPTCHA | Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(7)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
+| Có CAPTCHA | CAPTCHA | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(5)` | `<input placeholder="Mã bảo mật" type="text" name="captcha">` |
 
-Đặt ba locator trong `LoginPage`. Trước khi nhập, kiểm tra selector khớp đúng một phần tử có `name`, `type`, `placeholder` tương ứng. Vì `nth-child` phụ thuộc vị trí DOM, kiểm tra cả khi CAPTCHA hiện và ẩn; không âm thầm thay selector nếu vị trí đổi. Khi CAPTCHA không hiển thị, chỉ các ca yêu cầu CAPTCHA được phân loại theo tiền điều kiện; Username/Password vẫn phải khớp chính xác.
+Đặt các locator theo hai trạng thái trong `LoginPage`. Xác định CAPTCHA đang hiển thị bằng quan sát DOM trước khi chọn cặp selector; không dựa vào thứ tự chạy testcase. Trước khi nhập, kiểm tra selector khớp đúng một phần tử có `name`, `type`, `placeholder` tương ứng. Vì `nth-child` phụ thuộc vị trí DOM, kiểm tra cả khi CAPTCHA hiện và ẩn; không âm thầm thay selector nếu vị trí đổi. Khi CAPTCHA không hiển thị, chỉ các ca yêu cầu CAPTCHA được phân loại theo tiền điều kiện; Username/Password vẫn phải khớp chính xác.
 
 Locator nút submit, vùng lỗi, ảnh/challenge và refresh CAPTCHA cần khảo sát riêng. Chỉ dùng các thành phần này để thực thi và quan sát ca kiểm thử của ba trường trong phạm vi.
 
@@ -171,4 +173,5 @@ Mỗi lần chạy ghi ID, biến thể, thời điểm, môi trường, browser
 Đầu vào còn thiếu: kiểm chứng DOM của các selector; locator submit/lỗi/ảnh mã/refresh; Username tồn tại cho TC05; môi trường phù hợp cho payload và reset/kích hoạt; mã CAPTCHA thử nghiệm, TTL, chính sách refresh/replay, ngưỡng N. Có thể làm khung dự án và ca độc lập trong khi các mục này chưa có.
 
 Yêu cầu hiện tại chỉ cập nhật tài liệu và cấu trúc dự kiến trong plan; chưa tạo project, thực thi testcase hoặc tạo commit.
+
 
