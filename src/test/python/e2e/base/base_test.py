@@ -13,6 +13,8 @@ class BaseTest:
         options = webdriver.ChromeOptions() if settings.browser == "chrome" else webdriver.EdgeOptions()
         if settings.headless:
             options.add_argument("--headless=new")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1440,1000")
         if settings.browser_binary:
             options.binary_location = settings.browser_binary

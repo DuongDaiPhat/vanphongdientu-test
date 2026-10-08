@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - codex/**
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test Suite Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip check
+
+      - name: Verify Python syntax
+        run: |
+          python -m compileall src/
+
+      - name: Verify test discovery
+        run: |
+          pytest --collect-only -q
+
+      - name: Run demo test suite
+        run: |
+          pytest --demo -q --junitxml=reports/reference.xml
+
+      - name: Verify defect detection assertions
+        run: |
+          pytest --demo --demo-defect=captcha-bypass -q -k "test_tc13_" --tb=short && exit 1 || true
+          pytest --demo --demo-defect=authentication-bypass -q -k "test_tc04_" --tb=short && exit 1 || true
+          pytest --demo --demo-defect=wrong-message -q -k "test_tc04_" --tb=short && exit 1 || true
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/
+          if-no-files-found: ignore
