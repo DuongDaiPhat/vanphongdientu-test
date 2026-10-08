@@ -128,14 +128,15 @@ class TestLoginE2E:
 
     @pytest.mark.captcha
     @pytest.mark.assisted
-    @pytest.mark.oracle("captcha")
-    @pytest.mark.requires("captcha_ttl")
-    def test_tc17_expired_captcha(self, login_page, credentials, captcha_solver):
+    @pytest.mark.oracle("auth")
+    @pytest.mark.requires("captcha_no_expiry")
+    def test_tc17_unchanged_captcha_after_wait(self, login_page, credentials, captcha_solver, request):
         code = captcha_solver(login_page)
-        login_page.wait_for_expiry()
+        seconds = login_page.wait_without_refresh()
+        request.node._synthetic_data["captcha_observation_seconds"] = seconds
         login_page.fill(*credentials, captcha=code)
         login_page.submit()
-        login_page.assert_rejected("captcha", require_server=True)
+        login_page.assert_rejected("auth", require_server=True)
 
     @pytest.mark.captcha
     @pytest.mark.assisted
