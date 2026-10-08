@@ -136,3 +136,12 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha=code)
         login_page.submit()
         login_page.assert_rejected("captcha", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("auth")
+    def test_tc18_valid_captcha_invalid_credentials(self, login_page, credentials, captcha_solver):
+        code = captcha_solver(login_page)
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
