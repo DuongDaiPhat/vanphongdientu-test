@@ -95,4 +95,4 @@ Profile các oracle đã xác minh nằm trong `config/utc.env`. Thông báo CAP
 - Các ca trong phạm vi có oracle/tiền điều kiện đã xác nhận được triển khai, mỗi ID một commit riêng. Ca nhiều biến thể parametrized trong cùng commit ID đó.
 - Chỉ triển khai các ID còn trong bảng; ca thiếu điều kiện được SKIPPED/BLOCKED rõ lý do, không coi là đã kiểm thử.
 - Báo cáo có ID, môi trường, thời điểm, kết quả, lý do skip/block và bằng chứng lỗi. Còn BLOCKED thì ghi phạm vi chưa xác minh, không tuyên bố hoàn tất toàn bộ kiểm thử.
-- Kế hoạch chi tiết: [plan.md](plan.md). Đã triển khai Selenium và chạy các ca đủ điều kiện trên UTC. Kết quả mới nhất: 23 lượt PASS cho 22 ID, không còn BLOCKED/SKIPPED; các lần chạy lại ca assisted vẫn cần mã thủ công của challenge mới. Báo cáo mới nhất: [utc_live_execution.md](utc_live_execution.md).
+- Hướng dẫn chạy và tổng hợp báo cáo: [README.md](../README.md). Đã triển khai Selenium và chạy các ca đủ điều kiện trên UTC. Kết quả mới nhất: 23 lượt PASS cho 22 ID, không còn BLOCKED/SKIPPED; các lần chạy lại ca assisted vẫn cần mã thủ công của challenge mới. Báo cáo mới nhất: [utc_live_execution.md](utc_live_execution.md).

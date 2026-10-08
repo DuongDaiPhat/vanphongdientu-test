@@ -47,7 +47,7 @@ Thông báo đã xác minh: `Bạn chưa nhập tên đăng nhập`, `Bạn chư
 
 ## Chạy lại
 
-[plan.md](plan.md) có lệnh chọn từng nhóm ca, nhận mã thủ công và kiểm tra activation/replay. Lệnh mặc định không mở payload production và có thể BLOCKED nếu chưa nhận mã hoặc chưa bật ca có điều kiện; điều này không thay đổi kết quả đã ghi của lần nghiệm thu. Mỗi lần chạy mới cần đáp án của challenge mới.
+[README.md](../README.md) có lệnh chọn từng nhóm ca, nhận mã thủ công và kiểm tra activation/replay. Lệnh mặc định không mở payload production và có thể BLOCKED nếu chưa nhận mã hoặc chưa bật ca có điều kiện; điều này không thay đổi kết quả đã ghi của lần nghiệm thu. Mỗi lần chạy mới cần đáp án của challenge mới.
 
 ```powershell
 # Ví dụ chạy ca thiếu mã, không cần người nhập đáp án:
