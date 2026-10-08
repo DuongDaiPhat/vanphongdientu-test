@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reports", nargs="+", type=Path)
     parser.add_argument("--html", required=True, type=Path)
+    parser.add_argument("--note", action="append", default=[], help="Context or confirmed scope changes to display with the aggregate")
     args = parser.parse_args()
     sources = sorted((json.loads(path.read_text(encoding="utf-8")) for path in args.reports), key=lambda source: source["finished_utc"])
     if len({(source["target"], source["environment"], source["demo"]) for source in sources}) != 1:
@@ -35,7 +36,7 @@ def main():
         "exit_code": "N/A (tổng hợp nhiều lượt chạy)", "collected": len(results),
         "counts": dict(Counter(row["status"] for row in results)), "results": results,
         "source_runs": [{key: source[key] for key in ("run_id", "started_utc", "finished_utc", "counts", "exit_code")} for source in sources],
-        "notes": ["Báo cáo tổng hợp nhiều đợt chạy trên cùng hệ thống, không phải một lượt pytest duy nhất. Mỗi biến thể dùng kết quả mới nhất trong các nguồn đã chọn; thời điểm và Run ID nguồn nằm trong chi tiết. Không chạy lại testcase khi tổng hợp."],
+        "notes": ["Báo cáo tổng hợp nhiều đợt chạy trên cùng hệ thống, không phải một lượt pytest duy nhất. Mỗi biến thể dùng kết quả mới nhất trong các nguồn đã chọn; thời điểm và Run ID nguồn nằm trong chi tiết. Không chạy lại testcase khi tổng hợp.", *args.note],
     }
     args.html.parent.mkdir(parents=True, exist_ok=True)
     args.html.with_suffix(".json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")

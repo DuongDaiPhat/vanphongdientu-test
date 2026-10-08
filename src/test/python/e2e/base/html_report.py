@@ -31,6 +31,9 @@ def write_html_report(data, destination):
             details.append('<h4>Lượt chạy nguồn</h4><p>' + esc(row["source_run_id"]) + ' · ' + esc(local_time(row["source_started_utc"])) + ' → ' + esc(local_time(row["source_finished_utc"])) + '</p>')
         if row.get("captcha_preparation"):
             details.append('<h4>Chuẩn bị CAPTCHA trong cùng phiên</h4><pre>' + esc(json.dumps(row["captcha_preparation"], ensure_ascii=False, indent=2)) + '</pre>')
+        measurements = {key: row.get("synthetic_data", {})[key] for key in ("actual_username_length", "captcha_observation_seconds") if key in row.get("synthetic_data", {})}
+        if measurements:
+            details.append('<h4>Thông số đã kiểm tra</h4><pre>' + esc(json.dumps(measurements, ensure_ascii=False, indent=2)) + '</pre>')
         if row.get("input"):
             details.append('<h4>Dữ liệu đã nhập</h4><pre>' + esc(json.dumps(row["input"], ensure_ascii=False, indent=2)) + '</pre>')
         if observation:
