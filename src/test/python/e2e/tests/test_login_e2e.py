@@ -29,3 +29,10 @@ class TestLoginE2E:
         login_page.fill(*credentials)
         login_page.submit()
         login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.oracle("auth")
+    @pytest.mark.requires("known_username", "known_wrong_password")
+    def test_tc05_existing_username_wrong_password(self, login_page, settings):
+        login_page.fill(settings.known_username, settings.known_wrong_password)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
