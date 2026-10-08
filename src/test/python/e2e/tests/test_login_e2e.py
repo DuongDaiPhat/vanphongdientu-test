@@ -36,3 +36,9 @@ class TestLoginE2E:
         login_page.fill(settings.known_username, settings.known_wrong_password)
         login_page.submit()
         login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.oracle("auth")
+    def test_tc06_padded_username(self, login_page, credentials):
+        login_page.fill("  " + credentials[0] + "  ", credentials[1])
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
