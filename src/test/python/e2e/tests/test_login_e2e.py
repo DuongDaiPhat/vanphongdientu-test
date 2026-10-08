@@ -178,3 +178,21 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha=code)
         login_page.submit()
         login_page.assert_rejected("captcha", require_server=True)
+
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth", "captcha")
+    @pytest.mark.requires("trigger_attempts", "reset_selector")
+    def test_tc22_captcha_activation(self, login_page, credentials, settings):
+        attempts = settings.trigger_attempts
+        if attempts + 1 > settings.max_login_attempts:
+            pytest.skip("BLOCKED: configured CAPTCHA threshold exceeds the total submission budget")
+        login_page.reset_attempts()
+        assert not login_page.captcha_visible(), "CAPTCHA already visible after resetting the test session"
+        for index in range(attempts):
+            login_page.fill(*credentials)
+            login_page.submit()
+            login_page.assert_rejected("auth", require_server=True)
+            assert login_page.captcha_visible() == (index + 1 == attempts), "CAPTCHA activation did not match the confirmed threshold"
+        login_page.fill(*credentials, captcha="")
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
