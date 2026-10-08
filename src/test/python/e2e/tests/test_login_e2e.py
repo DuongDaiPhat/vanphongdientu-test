@@ -145,3 +145,15 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha=code)
         login_page.submit()
         login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("username", "password")
+    @pytest.mark.parametrize("missing", ["username", "password"])
+    def test_tc19_valid_captcha_missing_credentials(self, login_page, credentials, captcha_solver, missing):
+        code = captcha_solver(login_page)
+        username, password = credentials
+        login_page.fill("" if missing == "username" else username,
+                        "" if missing == "password" else password, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected(missing)
