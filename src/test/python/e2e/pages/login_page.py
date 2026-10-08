@@ -4,7 +4,7 @@ import re
 import time
 
 import pytest
-from selenium.common.exceptions import NoAlertPresentException, StaleElementReferenceException
+from selenium.common.exceptions import NoAlertPresentException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -45,14 +45,23 @@ class LoginPage(BasePage):
     def verify_field(self, field):
         selector = self.selector_for(field)
         name, kind, placeholder = self.FIELDS[field]
-        matches = self.driver.find_elements(By.CSS_SELECTOR, selector)
-        if len(matches) != 1:
-            raise LocatorMismatch(f"{field}: CSS selector matched {len(matches)} elements; expected exactly one: {selector}")
-        element = matches[0]
-        actual = tuple(element.get_attribute(attr) for attr in ("name", "type", "placeholder"))
-        if actual != (name, kind, placeholder):
-            raise LocatorMismatch(f"{field}: selector identifies attributes {actual!r}, expected {(name, kind, placeholder)!r}")
-        return element
+        last = {"count": 0, "attributes": None}
+        def field_ready(_driver):
+            matches = self.driver.find_elements(By.CSS_SELECTOR, selector)
+            last["count"] = len(matches)
+            if len(matches) != 1:
+                return False
+            element = matches[0]
+            try:
+                actual = tuple(element.get_attribute(attr) for attr in ("name", "type", "placeholder"))
+            except StaleElementReferenceException:
+                return False
+            last["attributes"] = actual
+            return element if actual == (name, kind, placeholder) else False
+        try:
+            return self.wait.until(field_ready)
+        except TimeoutException as error:
+            raise LocatorMismatch(f"{field}: expected one {name, kind, placeholder!r}; last match count {last['count']}, attributes {last['attributes']!r}; selector {selector}") from error
 
     def captcha_visible(self):
         # Visibility determines whether this session can run CAPTCHA scenarios.
@@ -120,7 +129,16 @@ class LoginPage(BasePage):
             if rejected:
                 self.last_observation = {"error_text": text, "expected_categories": list(categories), "native_validation": native, "new_response": new_response, "login_form_visible": True, "url": self.driver.current_url}
             return rejected
-        self.wait.until(rejection_observed, message=f"No new rejection matching categories {categories}; last error: {self.error_text()!r}")
+        try:
+            WebDriverWait(self.driver, self.settings.timeout, ignored_exceptions=(StaleElementReferenceException,)).until(
+                rejection_observed, message=f"No new rejection matching categories {categories}"
+            )
+        except TimeoutException as error:
+            try:
+                last_error = self.error_text()
+            except StaleElementReferenceException:
+                last_error = "<DOM still updating>"
+            raise AssertionError(f"No new rejection matching categories {categories}; last error: {last_error!r}") from error
 
     def assert_no_server_details(self):
         text = self.driver.find_element(By.TAG_NAME, "body").text
