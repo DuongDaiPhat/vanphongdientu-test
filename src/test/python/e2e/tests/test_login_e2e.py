@@ -111,3 +111,17 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha="   ")
         login_page.submit()
         login_page.assert_rejected("captcha")
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("captcha")
+    @pytest.mark.requires("captcha_image_selector", "captcha_refresh_selector")
+    def test_tc16_refreshed_captcha(self, login_page, credentials, captcha_solver):
+        old_code = captcha_solver(login_page)
+        login_page.refresh_challenge()
+        new_code = captcha_solver(login_page)
+        if old_code == new_code:
+            pytest.skip("BLOCKED: refreshed challenge has the same answer; cannot distinguish rejection")
+        login_page.fill(*credentials, captcha=old_code)
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
