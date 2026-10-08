@@ -61,3 +61,9 @@ class TestLoginE2E:
         login_page.submit()
         login_page.assert_rejected("auth", require_server=True)
         login_page.assert_no_server_details()
+
+    @pytest.mark.oracle("auth")
+    def test_tc09_enter_submission(self, login_page, credentials):
+        login_page.fill(*credentials)
+        login_page.submit(enter=True)
+        login_page.assert_rejected("auth", require_server=True)
