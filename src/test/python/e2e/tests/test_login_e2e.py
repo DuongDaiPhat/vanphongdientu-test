@@ -157,3 +157,10 @@ class TestLoginE2E:
                         "" if missing == "password" else password, captcha=code)
         login_page.submit()
         login_page.assert_rejected(missing)
+
+    @pytest.mark.captcha
+    @pytest.mark.oracle("captcha")
+    def test_tc20_enter_without_captcha(self, login_page, credentials):
+        login_page.fill(*credentials, captcha="")
+        login_page.submit(enter=True)
+        login_page.assert_rejected("captcha")
