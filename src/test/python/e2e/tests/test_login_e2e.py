@@ -125,3 +125,14 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha=old_code)
         login_page.submit()
         login_page.assert_rejected("captcha", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("captcha")
+    @pytest.mark.requires("captcha_ttl")
+    def test_tc17_expired_captcha(self, login_page, credentials, captcha_solver):
+        code = captcha_solver(login_page)
+        login_page.wait_for_expiry()
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
