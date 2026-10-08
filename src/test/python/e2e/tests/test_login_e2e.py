@@ -79,3 +79,12 @@ class TestLoginE2E:
         login_page.fill(credentials[0], "   ")
         login_page.submit()
         login_page.assert_rejected("password", "auth")
+
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("username", "auth")
+    def test_tc12_long_username(self, login_page, credentials, request):
+        actual = login_page.fill("a" * 256, credentials[1])
+        request.node._synthetic_data["actual_username_length"] = len(actual["username"])
+        login_page.submit()
+        login_page.assert_rejected("username", "auth")
+        login_page.assert_no_server_details()
