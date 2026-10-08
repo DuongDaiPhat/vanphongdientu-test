@@ -125,6 +125,12 @@ class LoginPage(BasePage):
             matches = any(self.settings.patterns.get(category) and re.search(self.settings.patterns[category], text, re.I) for category in categories)
             if not native and not (new_response and matches):
                 return False
+            # Navigation may finish after the first authentication check above.
+            # Check the completed response before accepting its rejection text.
+            if self.driver.execute_script("return document.readyState") != "complete":
+                return False
+            if self.settings.authenticated_selector:
+                assert not any(e.is_displayed() for e in self.driver.find_elements(By.CSS_SELECTOR, self.settings.authenticated_selector)), "Authenticated content appeared after a negative login"
             rejected = any(e.is_displayed() for e in self.driver.find_elements(By.CSS_SELECTOR, self.FORM))
             if rejected:
                 self.last_observation = {"error_text": text, "expected_categories": list(categories), "native_validation": native, "new_response": new_response, "login_form_visible": True, "url": self.driver.current_url}

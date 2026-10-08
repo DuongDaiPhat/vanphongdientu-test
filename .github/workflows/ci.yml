@@ -50,9 +50,20 @@ jobs:
 
       - name: Verify defect detection assertions
         run: |
-          pytest --demo --demo-defect=captcha-bypass -q -k "test_tc13_" --tb=short && exit 1 || true
-          pytest --demo --demo-defect=authentication-bypass -q -k "test_tc04_" --tb=short && exit 1 || true
-          pytest --demo --demo-defect=wrong-message -q -k "test_tc04_" --tb=short && exit 1 || true
+          expect_test_failure() {
+            local status=0
+            local report="reports/defect-$1.xml"
+            pytest --demo --demo-defect="$1" -q -k "$2" --tb=short --junitxml="$report" || status=$?
+            if [ "$status" -ne 1 ]; then
+              echo "::error::Defect $1 must produce a test failure (exit 1), got exit $status"
+              exit 1
+            fi
+            python -c 'import sys, xml.etree.ElementTree as ET; cases = list(ET.parse(sys.argv[1]).iter("testcase")); sys.exit(0 if len(cases) == 1 and cases[0].find("failure") is not None and cases[0].find("error") is None else "Expected one assertion failure, not a setup error or skipped test")' "$report"
+            echo "Detected expected defect: $1"
+          }
+          expect_test_failure captcha-bypass "test_tc13_"
+          expect_test_failure authentication-bypass "test_tc04_"
+          expect_test_failure wrong-message "test_tc04_"
 
       - name: Upload test artifacts
         if: always()
