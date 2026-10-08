@@ -2,8 +2,6 @@
 
 Dự án **Python + Selenium 4 + pytest** cho 22 negative testcase TC01–TC22 của Username, Password và CAPTCHA. TC19 có hai biến thể nên pytest thu thập 23 lượt kiểm thử. Bài test PASS khi ứng dụng từ chối đúng; không cần tài khoản đăng nhập thành công.
 
-Yêu cầu và dữ liệu: [docs/requirements.md](docs/requirements.md). Kết quả chạy trực tiếp: [docs/utc_live_execution.md](docs/utc_live_execution.md). Lịch sử kiểm chứng ban đầu: [docs/execution.md](docs/execution.md). Tài liệu kiến trúc POM: [docs/pom_architecture.md](docs/pom_architecture.md).
-
 ## Kết quả chạy trực tiếp trên UTC
 
 Đích: <https://vanphongdientu.utc.edu.vn/Login>. Kết quả mới nhất được tổng hợp từ **8 đợt chạy ngày 08/10/2026, 16:17:33–17:10:19 (UTC+7)**.
@@ -17,9 +15,7 @@ Yêu cầu và dữ liệu: [docs/requirements.md](docs/requirements.md). Kết 
 
 Có **22 ID TC01–TC22**; TC19 có hai biến thể nên tổng 23 lượt. Báo cáo lấy kết quả mới nhất của từng biến thể, giữ Run ID và thời điểm nguồn; các lượt lỗi/chờ mã trước khi sửa vẫn được lưu. Kết quả form tham chiếu cục bộ được ghi riêng.
 
-- [Báo cáo HTML với 23 ảnh bằng chứng nhúng](reports/utc-live/report.html).
-- [JSON tổng hợp](reports/utc-live/report.json) và [kết quả kiểm tra giao diện HTML](reports/utc-live/html-verification.json).
-- [Chi tiết thực thi và nguồn từng đợt](docs/utc_live_execution.md).
+- [Báo cáo HTML với 23 ảnh bằng chứng nhúng](report.html).
 
 TC07/TC08/TC12 đã gửi mỗi ca một lần sau chấp thuận riêng của người dùng. CAPTCHA và tài khoản thử nghiệm được cung cấp theo điều kiện từng ca. TC17 được sửa theo xác nhận CAPTCHA không tự hết hạn: giữ nguyên mã **60 giây**, sau đó mã vẫn được chấp nhận và tài khoản sai bị từ chối. Khoảng quan sát này không chứng minh hiệu lực vô hạn.
 
@@ -75,7 +71,6 @@ Dùng tiền tố `form[action='/Login'][method='post']` và thuộc tính `name
 | Ảnh CAPTCHA | `img#captcha` |
 | Đổi mã | `a[onclick*="getElementById('captcha')"]` |
 
-Trang mới có Username/Password ở vị trí 1/2; sau lỗi chúng chuyển sang 2/3. Selector thuộc tính hoạt động trong các bố cục có/không CAPTCHA, theo sự cho phép cập nhật locator của người dùng. Chi tiết selector đầy đủ nằm trong [requirements.md](docs/requirements.md).
 
 Kiểm tra DOM thật, không gửi đăng nhập:
 
@@ -171,8 +166,6 @@ Công cụ lấy kết quả mới nhất theo ID/biến thể và giữ nguồn
 Nhánh công việc: `codex/login-negative-tests`. Mỗi TC01–TC22 có commit Conventional Commits tiếng Anh riêng. TC19 gồm hai biến thể trong cùng commit; commit hạ tầng/tài liệu tách riêng.
 
 ## Bảng Testcase
-
-Quy ước dữ liệu và oracle O1/O2/O3: [requirements.md](docs/requirements.md).
 
 | ID | Nhóm kiểm thử / kỹ thuật | Tiền điều kiện / phạm vi | Các bước thực hiện (Steps) | Dữ liệu kiểm thử (Test Data) | Kết quả mong đợi (Expected Result) | Kết quả UTC hiện tại |
 | --- | --- | --- | --- | --- | --- | --- |
