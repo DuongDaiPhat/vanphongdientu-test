@@ -136,16 +136,20 @@ class LoginPage(BasePage):
         if not self.settings.captcha_refresh_selector:
             pytest.skip("BLOCKED: CAPTCHA_REFRESH_SELECTOR has not been verified")
         previous = self.challenge_identity()
+        previous_pixels = self.visible(self.settings.captcha_image_selector).screenshot_as_base64
         self.click(self.settings.captcha_refresh_selector)
-        self.wait.until(lambda _: self.challenge_identity() != previous, "CAPTCHA challenge identity did not change after refresh")
+        def image_changed(_driver):
+            image = self.visible(self.settings.captcha_image_selector)
+            loaded = self.driver.execute_script("return arguments[0].complete && arguments[0].naturalWidth > 0;", image)
+            return loaded and self.challenge_identity() != previous and image.screenshot_as_base64 != previous_pixels
+        self.wait.until(image_changed, "CAPTCHA image did not finish loading a changed challenge after refresh")
         self.verify_field("captcha")
 
-    def wait_for_expiry(self):
-        seconds = self.settings.captcha_ttl + self.settings.captcha_ttl_margin
-        if self.settings.captcha_ttl <= 0:
-            pytest.skip("BLOCKED: CAPTCHA TTL has not been confirmed")
+    def wait_without_refresh(self):
+        seconds = self.settings.captcha_observation_seconds
         deadline = time.monotonic() + seconds
         WebDriverWait(self.driver, seconds + 2, poll_frequency=0.2).until(lambda _: time.monotonic() >= deadline)
+        return seconds
 
     def reset_attempts(self):
         if self.settings.reset_strategy == "fresh_browser":

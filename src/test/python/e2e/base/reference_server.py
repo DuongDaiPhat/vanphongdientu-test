@@ -45,11 +45,12 @@ class ReferenceServer:
         return replace(
             settings, base_url=f"http://127.0.0.1:{self.httpd.server_port}/Login", environment="test",
             error_selector="#error", authenticated_selector="#authenticated",
-            patterns={"auth": r"Invalid username or password", "username": r"Username is required", "password": r"Password is required", "captcha": r"CAPTCHA (?:is required|is invalid|has expired|was already used)"},
+            patterns={"auth": r"Invalid username or password", "username": r"Username is required", "password": r"Password is required", "captcha": r"CAPTCHA (?:is required|is invalid|was already used)"},
             known_username="reference_existing_user", known_wrong_password="reference_wrong_password",
-            captcha_image_selector="#challenge", captcha_refresh_selector="#refresh", captcha_ttl=1,
-            captcha_ttl_margin=0.25, trigger_attempts=2, captcha_single_use=True,
+            captcha_image_selector="#challenge", captcha_refresh_selector="#refresh",
+            trigger_attempts=2, captcha_single_use=True,
             max_login_attempts=3, reset_selector="#reset", reset_strategy="ui", approved_test_host="127.0.0.1",
+            captcha_no_expiry=True, captcha_observation_seconds=0.25,
         )
 
     def url_for(self, test_name):
@@ -70,7 +71,9 @@ class ReferenceServer:
         query = parse_qs(parsed.query)
         if parsed.path == "/challenge.svg":
             # Browser needs a real image; the official test fixture supplies the code.
-            content = b'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="24"><text x="2" y="18">test challenge</text></svg>'
+            time.sleep(0.2)  # Expose races between a changed src and decoded pixels.
+            identity = html.escape(query.get("id", [""])[0][:8])
+            content = f'<svg xmlns="http://www.w3.org/2000/svg" width="220" height="24"><text x="2" y="18">test challenge {identity}</text></svg>'.encode()
             handler.send_response(200)
             handler.send_header("Content-Type", "image/svg+xml")
             handler.end_headers()
@@ -99,8 +102,6 @@ class ReferenceServer:
             if captcha and self.defect != "captcha-bypass":
                 if not code.strip():
                     error = "CAPTCHA is required"
-                elif number == 17 and time.monotonic() - state["issued"] > 1:
-                    error = "CAPTCHA has expired"
                 elif number == 21 and state["used"]:
                     error = "CAPTCHA was already used"
                 elif code != state["code"]:
@@ -120,6 +121,8 @@ class ReferenceServer:
                 error = "Unrelated error, not the expected rejection"
             state["attempts"] += 1
             captcha = number >= 13 and (number != 22 or state["attempts"] >= 2)
+            if captcha:
+                self.new_challenge(state)
         action = f"/Login?case={case}"
         captcha_fields = f'''<input type="hidden" name="spacer1"><input type="hidden" name="spacer2"><input type="hidden" name="spacer3"><input type="hidden" name="spacer4">
 <input placeholder="Mã bảo mật" type="text" name="captcha">''' if captcha else '<input type="hidden" name="spacer1">'

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -23,7 +24,9 @@ def main():
     latest = {}
     for source in sources:
         for result in source["results"]:
-            latest[result["test"]] = dict(result, source_run_id=source["run_id"], source_started_utc=source["started_utc"], source_finished_utc=source["finished_utc"])
+            variant = re.search(r"\[[^\]]*\]$", result["test"])
+            key = (result["id"], variant.group() if variant else "")
+            latest[key] = dict(result, source_run_id=source["run_id"], source_started_utc=source["started_utc"], source_finished_utc=source["finished_utc"])
     results = sorted(latest.values(), key=lambda row: row["test"])
     data = {
         "run_id": "aggregate-" + sources[-1]["run_id"], "report_kind": "aggregate",

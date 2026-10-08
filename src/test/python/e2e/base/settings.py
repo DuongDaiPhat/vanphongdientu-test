@@ -45,8 +45,6 @@ class Settings:
     known_wrong_password: str = field(repr=False)
     captcha_image_selector: str
     captcha_refresh_selector: str
-    captcha_ttl: float
-    captcha_ttl_margin: float
     trigger_attempts: int
     max_login_attempts: int
     captcha_single_use: bool
@@ -54,6 +52,8 @@ class Settings:
     approved_test_host: str
     assisted_timeout: float
     reset_strategy: str = ""
+    captcha_no_expiry: bool = False
+    captcha_observation_seconds: float = 60
 
     @classmethod
     def from_env(cls, root: Path) -> "Settings":
@@ -89,11 +89,11 @@ class Settings:
             env.get("ERROR_SELECTOR", ""), env.get("AUTHENTICATED_SELECTOR", ""), patterns,
             env.get("KNOWN_USERNAME", ""), env.get("KNOWN_WRONG_PASSWORD", ""),
             env.get("CAPTCHA_IMAGE_SELECTOR", ""), env.get("CAPTCHA_REFRESH_SELECTOR", ""),
-            positive("CAPTCHA_TTL_SECONDS", 0, zero=True), positive("CAPTCHA_TTL_MARGIN", 1),
             positive("CAPTCHA_TRIGGER_ATTEMPTS", 0, int, zero=True), positive("MAX_LOGIN_ATTEMPTS", 5, int),
             boolean("CAPTCHA_SINGLE_USE", "false"), env.get("RESET_SELECTOR", ""),
             env.get("APPROVED_TEST_HOST", ""), positive("ASSISTED_TIMEOUT", 60),
             env.get("RESET_STRATEGY", ""),
+            boolean("CAPTCHA_NO_EXPIRY", "false"), positive("CAPTCHA_OBSERVATION_SECONDS", 60),
         )
 
     def test_environment_allowed(self) -> bool:
