@@ -181,7 +181,7 @@ class TestLoginE2E:
 
     @pytest.mark.test_env_only
     @pytest.mark.oracle("auth", "captcha")
-    @pytest.mark.requires("trigger_attempts", "reset_selector")
+    @pytest.mark.requires("trigger_attempts", "reset_strategy")
     def test_tc22_captcha_activation(self, login_page, credentials, settings):
         attempts = settings.trigger_attempts
         if attempts + 1 > settings.max_login_attempts:
