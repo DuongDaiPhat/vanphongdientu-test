@@ -164,3 +164,17 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha="")
         login_page.submit(enter=True)
         login_page.assert_rejected("captcha")
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth", "captcha")
+    @pytest.mark.requires("captcha_single_use")
+    def test_tc21_replayed_captcha(self, login_page, credentials, captcha_solver):
+        code = captcha_solver(login_page)
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
