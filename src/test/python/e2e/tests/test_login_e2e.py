@@ -73,3 +73,9 @@ class TestLoginE2E:
         login_page.fill("   ", credentials[1])
         login_page.submit()
         login_page.assert_rejected("username", "auth")
+
+    @pytest.mark.oracle("password", "auth")
+    def test_tc11_whitespace_password(self, login_page, credentials):
+        login_page.fill(credentials[0], "   ")
+        login_page.submit()
+        login_page.assert_rejected("password", "auth")
