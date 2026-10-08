@@ -94,7 +94,7 @@ Import từ package `e2e`, ví dụ `from e2e.pages.login_page import LoginPage`
 | 2. Khung Python | Tạo cấu trúc mục 3, dependency, pytest config, đọc cấu hình, `BaseTest` và fixture driver. | Thu thập test được; smoke check hạ tầng mở/đóng browser thành công, không cần đăng nhập thành công. |
 | 3. Page Objects | Viết `BasePage`, `LoginPage`; thêm explicit wait, thao tác ba trường, submit, đọc lỗi, nhận diện CAPTCHA và bằng chứng. | Không sleep cố định cho tải trang; không nuốt lỗi để báo PASS. Commit hạ tầng không gộp nhiều ID testcase. |
 | 4. Negative cơ bản | Lần lượt TC01, TC02, TC03, TC04, TC06, TC09, TC10, TC11 khi oracle đã chốt. | Một ID một commit; xác minh CAPTCHA ẩn. CAPTCHA hiện thì ghi rõ lý do chưa chạy ca cơ bản; không dùng lỗi CAPTCHA để kết luận lỗi tài khoản. |
-| 5. Ca phụ thuộc | TC05 khi có Username tồn tại và mật khẩu chắc chắn sai; TC07, TC08, TC12 khi có môi trường thử nghiệm và oracle phù hợp. | Không dùng Username giả để tuyên bố đã kiểm thử tài khoản tồn tại. Payload bảo mật không chạy mặc định trên trang công khai. |
+| 5. Ca phụ thuộc | TC05 khi có Username tồn tại và mật khẩu chắc chắn sai; TC07, TC08, TC12 khi có môi trường thử nghiệm hoặc chấp thuận rõ trên production và oracle phù hợp. | Không dùng Username giả để tuyên bố đã kiểm thử tài khoản tồn tại. Payload bảo mật không chạy mặc định trên trang công khai. |
 | 6. CAPTCHA thiếu/sai | TC13, TC14, TC15, TC20 trên ô nhập mã `name=captcha`. | TC13/TC20 để rỗng; TC14 có mã chắc chắn sai; TC15 nhập dấu cách. Chứng minh riêng lỗi CAPTCHA. |
 | 7. Vòng đời CAPTCHA | TC16, TC17, TC18, TC19, TC21, TC22 khi có mã đúng, TTL, ngưỡng và cơ chế thử nghiệm. | Chứng minh refresh/hết hạn/replay; mã đúng lấy thủ công hoặc cơ chế test chính thức. Không đủ điều kiện thì BLOCKED hoặc chạy assisted. |
 | 8. Bàn giao | Chạy tập ca đủ điều kiện, phân tích FAIL, lưu bằng chứng, hoàn thiện README/báo cáo, kiểm tra lịch sử commit. | Có kết quả PASS/FAIL/SKIPPED/BLOCKED, hướng dẫn chạy lại và danh sách phạm vi chưa xác minh. |
@@ -111,7 +111,7 @@ Import từ package `e2e`, ví dụ `from e2e.pages.login_page import LoginPage`
 
 ## 6. Kế hoạch Git
 
-Đã cập nhật `.gitignore`: theo dõi `docs/`; bỏ qua môi trường ảo, `.env`, cache, báo cáo và screenshot. Nhánh triển khai là `codex/login-negative-tests`; mỗi ID có commit riêng sau khi kiểm chứng trên form tham chiếu cục bộ.
+Các tài liệu đã tracked tiếp tục được cập nhật; `.gitignore` hiện do người dùng chỉnh có quy tắc bỏ qua `docs/` cho file mới. Môi trường ảo, `.env`, cache, báo cáo và screenshot không commit. Nhánh triển khai là `codex/login-negative-tests`; mỗi ID có commit riêng sau khi kiểm chứng trên form tham chiếu cục bộ.
 
 Commit tài liệu/hạ tầng tách riêng:
 
@@ -165,7 +165,7 @@ Mỗi lần chạy ghi ID, biến thể, thời điểm, môi trường, browser
 - **Hoàn tất dự án kiểm thử:** cấu trúc Python đúng mục 3; cài đặt/thu thập test thành công; README đúng; ca bám ID, oracle, commit và ba trường trong phạm vi.
 - **Hoàn tất xác minh phạm vi:** các ca đủ điều kiện đã chạy, đối chiếu kết quả và có bằng chứng. Còn BLOCKED phải báo rõ phần thiếu, không tuyên bố đã xác minh toàn bộ CAPTCHA/chức năng.
 
-Đầu vào còn thiếu: kiểm chứng DOM của các selector; ảnh mã/refresh CAPTCHA; Username tồn tại cho TC05; môi trường phù hợp cho payload và reset/kích hoạt; mã CAPTCHA thử nghiệm, TTL, chính sách refresh/replay, ngưỡng N. Có thể làm khung dự án và ca độc lập trong khi các mục này chưa có.
+Đầu vào còn thiếu tại thời điểm cập nhật: mã thủ công cho từng challenge đang chờ, TTL và chính sách replay. DOM, tài khoản TC05, chấp thuận ba payload, ảnh/link đổi mã và ngưỡng kích hoạt quan sát đã được bổ sung; tiến độ mới ở mục 11.
 
 ## 9. Tiến độ triển khai
 
@@ -174,11 +174,33 @@ Mỗi lần chạy ghi ID, biến thể, thời điểm, môi trường, browser
 - Đã cập nhật locator theo name/type sau khi người dùng cho phép sửa khác DOM; kiểm tra đúng name/type/placeholder trước thao tác.
 - Đã thêm mã thực thi cho mỗi ID, kiểm chứng trên form tham chiếu cục bộ và lưu từng testcase trong một commit tiếng Anh riêng.
 - Có công cụ kiểm tra DOM chỉ đọc và form tham chiếu cục bộ. Kết quả cục bộ không thay bằng chứng E2E trên UTC.
-- Đã xác minh locator mới, lỗi Username/Password/xác thực và chạy các ca đủ điều kiện trực tiếp trên UTC. Ca thiếu tài khoản, CAPTCHA, đặc tả hoặc chấp thuận payload vẫn được ghi rõ SKIPPED/BLOCKED.
+- Đã xác minh locator mới, lỗi Username/Password/xác thực và chạy các ca đủ điều kiện trực tiếp trên UTC. Các ca thiếu mã CAPTCHA hoặc đặc tả vẫn được ghi rõ SKIPPED/BLOCKED; tài khoản và chấp thuận payload đã được bổ sung ở mục 11.
 - Báo cáo chạy và các bước tiếp theo được cập nhật tại [execution.md](execution.md).
 
 ## 10. Chạy trực tiếp và báo cáo HTML
 
 Dùng tools/run_utc.py để nạp profile lỗi đã xác minh và chạy trên UTC. Báo cáo HTML độc lập chứa tổng hợp trạng thái, dữ liệu nhập, thông báo thực tế, browser/version và ảnh nhúng; có lọc trạng thái và tìm testcase. Kết quả mới nhất: [utc_live_execution.md](utc_live_execution.md).
 
-Ba ca payload SQL/XSS và username dài hiện bị chặn trên production sau khi bộ xét duyệt tự động từ chối lệnh chạy; chỉ thực hiện thêm khi có chấp thuận rõ. Không dùng tùy chọn mở ca để vượt quyết định này. Những ca thông thường vẫn chạy trực tiếp.
+Sau khi người dùng chấp thuận riêng, TC07, TC08, TC12 đã được gửi mỗi ca một lần trên UTC và đều PASS. TC05 cũng PASS với Username được người dùng xác nhận và mật khẩu giả sai; dữ liệu tài khoản chỉ nằm trong .env bị ignore.
+
+## 11. Gỡ chặn theo dữ liệu bổ sung ngày 08/10/2026
+
+- Đã gỡ chặn và chạy PASS TC05/TC07/TC08/TC12. Không gửi lại các payload trong đợt CAPTCHA.
+- Người dùng xác nhận có thể nhập mã thủ công và hướng dẫn nhập sai nhiều lần để CAPTCHA xuất hiện. Khảo sát bằng tài khoản giả trong hai browser mới đều thấy CAPTCHA ở lần thứ 3; đã xác minh ảnh `img#captcha`, link đổi mã và lỗi mã rỗng.
+- TC22 đã PASS trực tiếp: browser mới không CAPTCHA, ba lần sai kích hoạt CAPTCHA, lần gửi thứ tư để mã rỗng nhận lỗi CAPTCHA. Đây là hành vi quan sát tại thời điểm chạy; không suy đoán ngưỡng cấu hình nội bộ. Browser mới là cơ chế bắt đầu phiên riêng; link đổi mã chỉ refresh challenge.
+- TC13 đã PASS; TC14 đang chờ mã người dùng. Tiếp tục TC15/TC20, rồi TC16/TC18/hai biến thể TC19 khi nhận mã đúng từng challenge.
+- TC17 vẫn cần TTL được xác nhận. TC21 vẫn cần chính sách dùng một lần và điều kiện chạy replay được xác định. Không tự đặt TTL hoặc coi đổi ảnh là reset bộ đếm.
+
+Công cụ nhận mã thủ công tạo `current-request.json` và ảnh trong thư mục `--captcha-inbox`. Mỗi yêu cầu có ID riêng, file trả lời phải chứa đúng `request_id` và `code`; mã được xóa sau khi nhận hoặc hết thời gian. Cơ chế này chỉ chuyển mã do người nhập, không đọc ảnh tự động.
+
+```powershell
+# Các ca CAPTCHA không cần đáp án đúng:
+.\.venv\Scripts\python.exe tools/run_utc.py --cases TC13 TC15 TC20 --prepare-captcha --html reports/utc-live/captcha-empty.html
+# Các ca cần người nhập mã, mỗi challenge dùng câu trả lời riêng:
+$env:ASSISTED_TIMEOUT = '600'
+.\.venv\Scripts\python.exe tools/run_utc.py --cases TC14 TC16 TC18 TC19 --prepare-captcha --assisted --captcha-inbox reports/utc-live/captcha-assistance --html reports/utc-live/captcha-assisted.html
+# Kiểm chứng ngưỡng đã quan sát; tổng submit bị giới hạn bởi MAX_LOGIN_ATTEMPTS:
+.\.venv\Scripts\python.exe tools/run_utc.py --cases TC22 --check-activation --html reports/utc-live/captcha-activation.html
+```
+
+Báo cáo tổng hợp dùng `tools/merge_reports.py` để lấy kết quả mới nhất của từng biến thể từ các file JSON cùng hệ thống; giữ thời điểm/Run ID nguồn, không thực thi lại testcase và không cộng kết quả form tham chiếu vào kết quả UTC.
