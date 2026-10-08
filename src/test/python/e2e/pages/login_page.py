@@ -148,6 +148,11 @@ class LoginPage(BasePage):
         WebDriverWait(self.driver, seconds + 2, poll_frequency=0.2).until(lambda _: time.monotonic() >= deadline)
 
     def reset_attempts(self):
+        if self.settings.reset_strategy == "fresh_browser":
+            assert getattr(self, "fresh_browser", False), "Fresh-browser reset requires a new driver from the function-scoped fixture"
+            assert not hasattr(self, "_previous_form"), "Cannot use fresh-browser reset after a submission"
+            assert not self.captcha_visible(), "A new browser still has CAPTCHA; fresh-browser reset is not applicable"
+            return
         if not self.settings.reset_selector:
             pytest.skip("BLOCKED: RESET_SELECTOR is required for the test environment")
         previous = self.driver.find_element(By.CSS_SELECTOR, self.FORM)

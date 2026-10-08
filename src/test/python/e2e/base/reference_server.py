@@ -49,7 +49,7 @@ class ReferenceServer:
             known_username="reference_existing_user", known_wrong_password="reference_wrong_password",
             captcha_image_selector="#challenge", captcha_refresh_selector="#refresh", captcha_ttl=1,
             captcha_ttl_margin=0.25, trigger_attempts=2, captcha_single_use=True,
-            max_login_attempts=3, reset_selector="#reset", approved_test_host="127.0.0.1",
+            max_login_attempts=3, reset_selector="#reset", reset_strategy="ui", approved_test_host="127.0.0.1",
         )
 
     def url_for(self, test_name):

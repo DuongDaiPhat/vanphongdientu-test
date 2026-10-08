@@ -53,6 +53,7 @@ class Settings:
     reset_selector: str
     approved_test_host: str
     assisted_timeout: float
+    reset_strategy: str = ""
 
     @classmethod
     def from_env(cls, root: Path) -> "Settings":
@@ -79,6 +80,8 @@ class Settings:
         browser = env.get("BROWSER", "chrome").lower()
         if browser not in {"chrome", "edge"}:
             raise ValueError("BROWSER must be chrome or edge")
+        if env.get("RESET_STRATEGY", "") not in {"", "ui", "fresh_browser"}:
+            raise ValueError("RESET_STRATEGY must be ui or fresh_browser")
         return cls(
             url, browser, boolean("HEADLESS", "true"), positive("TIMEOUT", 10),
             positive("PAGE_LOAD_TIMEOUT", 35), root / env.get("REPORT_DIR", "reports"),
@@ -90,6 +93,7 @@ class Settings:
             positive("CAPTCHA_TRIGGER_ATTEMPTS", 0, int, zero=True), positive("MAX_LOGIN_ATTEMPTS", 5, int),
             boolean("CAPTCHA_SINGLE_USE", "false"), env.get("RESET_SELECTOR", ""),
             env.get("APPROVED_TEST_HOST", ""), positive("ASSISTED_TIMEOUT", 60),
+            env.get("RESET_STRATEGY", ""),
         )
 
     def test_environment_allowed(self) -> bool:

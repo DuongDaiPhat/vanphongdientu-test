@@ -19,10 +19,12 @@ from e2e.pages.login_page import LoginPage
 def pytest_addoption(parser):
     parser.addoption("--allow-test-env", action="store_true", help="Enable gated tests on an explicitly configured test host")
     parser.addoption("--allow-assisted", action="store_true", help="Enable manual CAPTCHA entry; run with -s")
+    parser.addoption("--captcha-inbox", default="", help="Directory for session-specific human CAPTCHA requests and answers")
+    parser.addoption("--prepare-captcha", action="store_true", help="Use bounded invalid synthetic logins to obtain a real CAPTCHA before CAPTCHA cases")
     parser.addoption("--demo", action="store_true", help="Verify the suite on an isolated local reference form, not UTC")
     parser.addoption("--demo-defect", choices=["none", "captcha-bypass", "authentication-bypass", "wrong-message"], default="none")
     parser.addoption("--html-report", default="", help="Write a self-contained HTML report to this path")
-    parser.addoption("--allow-live-case", action="append", choices=["TC07", "TC08", "TC12"], default=[], help="Explicitly enable one bounded payload/length case on the live target")
+    parser.addoption("--allow-live-case", action="append", choices=["TC07", "TC08", "TC12", "TC22"], default=[], help="Explicitly enable one bounded case on the live target")
 
 
 def pytest_configure(config):
@@ -93,16 +95,30 @@ def driver(request, settings):
 @pytest.fixture
 def login_page(request, driver, settings):
     page = LoginPage(driver, settings)
+    page.fresh_browser = True  # The driver fixture always creates an isolated browser.
     request.node._login_page = page
     if request.config.getoption("--demo"):
         url = request.config._demo_server.url_for(request.node.name)
     else:
         url = settings.base_url
     page.open(url)
-    visible = page.captcha_visible()
     needs_captcha = bool(request.node.get_closest_marker("captcha"))
+    preparation = []
+    if needs_captcha and request.config.getoption("--prepare-captcha") and not request.config.getoption("--demo"):
+        if not settings.patterns.get("auth") or not settings.error_selector:
+            pytest.skip("BLOCKED: CAPTCHA preparation requires a verified authentication error")
+        username = "qa_invalid_" + uuid4().hex[:16]
+        for number in range(1, min(5, settings.max_login_attempts) + 1):
+            if page.captcha_visible():
+                break
+            page.fill(username, "InvalidPass_123!")
+            page.submit()
+            page.assert_rejected("auth", require_server=True)
+            preparation.append({"attempt": number, "error": page.error_text(), "captcha_visible": page.captcha_visible()})
+        request.node._captcha_preparation = preparation
+    visible = page.captcha_visible()
     prerequisites = request.node.get_closest_marker("requires")
-    resets_session = prerequisites is not None and "reset_selector" in prerequisites.args
+    resets_session = prerequisites is not None and ("reset_selector" in prerequisites.args or "reset_strategy" in prerequisites.args)
     if needs_captcha and not visible:
         pytest.skip("SKIPPED: CAPTCHA is not visible in this fresh session")
     if not needs_captcha and visible and not resets_session:
@@ -122,6 +138,14 @@ def captcha_solver(request, settings):
             return request.config._demo_server.code_for(page, valid=valid)
         if not request.config.getoption("--allow-assisted") or request.config.getoption("capture") != "no":
             pytest.skip("BLOCKED: CAPTCHA entry requires --allow-assisted -s or a test provider fixture")
+        inbox = request.config.getoption("--captcha-inbox")
+        if inbox:
+            from e2e.base.captcha_assistance import wait_for_code
+            try:
+                code = wait_for_code(page, inbox, request.node.name, settings.assisted_timeout)
+            except TimeoutError:
+                pytest.skip("BLOCKED: CAPTCHA assistance timed out for the current challenge")
+            return code if valid else ("0" if code[0] != "0" else "1") + code[1:]
         image_path = settings.report_dir / (request.config._login_run_id + "-captcha.png")
         page.driver.save_screenshot(str(image_path))
         print(f"\nCAPTCHA assistance for {request.node.name}; inspect {image_path}")
@@ -157,6 +181,8 @@ def pytest_runtest_makereport(item, call):
     reason = str(report.longrepr) if report.longrepr else ""
     status = "BLOCKED" if report.skipped and "BLOCKED:" in reason else "SKIPPED" if report.skipped else "PASS" if report.passed else "FAIL"
     row = {"id": match.group().upper() if match else item.name, "test": item.nodeid, "phase": report.when, "status": status, "reason": reason, "duration_seconds": report.duration, "synthetic_data": getattr(item, "_synthetic_data", {}), "evidence": []}
+    if hasattr(item, "_captcha_preparation"):
+        row["captcha_preparation"] = item._captcha_preparation
     browser = getattr(item, "_login_driver", None)
     page = getattr(item, "_login_page", None)
     if page:

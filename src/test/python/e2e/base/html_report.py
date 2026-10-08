@@ -27,6 +27,10 @@ def write_html_report(data, destination):
         observation = row.get("observed", {})
         message = observation.get("error_text") or row.get("reason") or "Không ghi nhận thông báo."
         details = []
+        if row.get("source_run_id"):
+            details.append('<h4>Lượt chạy nguồn</h4><p>' + esc(row["source_run_id"]) + ' · ' + esc(local_time(row["source_started_utc"])) + ' → ' + esc(local_time(row["source_finished_utc"])) + '</p>')
+        if row.get("captcha_preparation"):
+            details.append('<h4>Chuẩn bị CAPTCHA trong cùng phiên</h4><pre>' + esc(json.dumps(row["captcha_preparation"], ensure_ascii=False, indent=2)) + '</pre>')
         if row.get("input"):
             details.append('<h4>Dữ liệu đã nhập</h4><pre>' + esc(json.dumps(row["input"], ensure_ascii=False, indent=2)) + '</pre>')
         if observation:
@@ -46,6 +50,8 @@ def write_html_report(data, destination):
 <td>{row['duration_seconds']:.2f} s<small>{esc(browser)}</small></td>
 <td><div class="message">{esc(message)}</div><details><summary>Xem chi tiết và bằng chứng</summary>{''.join(details)}</details></td></tr>''')
     mode = "FORM THAM CHIẾU CỤC BỘ" if data["demo"] else "CHẠY TRỰC TIẾP TRÊN HỆ THỐNG ĐÍCH"
+    if data.get("report_kind") == "aggregate":
+        mode += " · TỔNG HỢP NHIỀU ĐỢT"
     summary = f"{len(ids)} ID · {len(data['results'])} lượt · {actual} lượt đã thực thi · {counts['SKIPPED'] + counts['BLOCKED']} lượt chưa thực thi"
     page = '''<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Báo cáo Selenium — đăng nhập UTC</title><style>
