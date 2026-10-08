@@ -42,3 +42,13 @@ class TestLoginE2E:
         login_page.fill("  " + credentials[0] + "  ", credentials[1])
         login_page.submit()
         login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.security
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth")
+    def test_tc07_sql_payload(self, login_page):
+        payload = "' OR '1'='1"
+        login_page.fill(payload, payload)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+        login_page.assert_no_server_details()
