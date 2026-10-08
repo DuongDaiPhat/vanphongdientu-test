@@ -17,3 +17,9 @@ class TestLoginE2E:
         login_page.fill("", credentials[1])
         login_page.submit()
         login_page.assert_rejected("username")
+
+    @pytest.mark.oracle("password")
+    def test_tc03_missing_password(self, login_page, credentials):
+        login_page.fill(credentials[0], "")
+        login_page.submit()
+        login_page.assert_rejected("password")
