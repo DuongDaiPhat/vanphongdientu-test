@@ -52,3 +52,12 @@ class TestLoginE2E:
         login_page.submit()
         login_page.assert_rejected("auth", require_server=True)
         login_page.assert_no_server_details()
+
+    @pytest.mark.security
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth")
+    def test_tc08_xss_payload(self, login_page, credentials):
+        login_page.fill("<script>alert('qa_xss')</script>", credentials[1])
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+        login_page.assert_no_server_details()
