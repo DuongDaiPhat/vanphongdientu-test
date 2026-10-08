@@ -1,4 +1,4 @@
-"""Strict user-supplied locators and observable rejection assertions."""
+"""Verified attribute locators and observable rejection assertions."""
 
 import re
 import time
@@ -14,17 +14,14 @@ from e2e.pages.base_page import BasePage
 
 
 class LocatorMismatch(AssertionError):
-    """A supplied positional selector no longer identifies its intended field."""
+    """A locator does not uniquely identify its intended field."""
 
 
 class LoginPage(BasePage):
-    PREFIX = "body > div > div.main > div.right > div.form > form > "
-    USERNAME_WITH_CAPTCHA = PREFIX + "input[type=text]:nth-child(6)"
-    PASSWORD_WITH_CAPTCHA = PREFIX + "input[type=password]:nth-child(7)"
-    USERNAME_WITHOUT_CAPTCHA = PREFIX + "input[type=text]:nth-child(2)"
-    PASSWORD_WITHOUT_CAPTCHA = PREFIX + "input[type=password]:nth-child(3)"
-    CAPTCHA = PREFIX + "input[type=text]:nth-child(5)"
-    FORM = "body > div > div.main > div.right > div.form > form"
+    FORM = "form[action='/Login'][method='post']"
+    USERNAME = FORM + " input[name='username'][type='text']"
+    PASSWORD = FORM + " input[name='userpwd'][type='password']"
+    CAPTCHA = FORM + " input[name='captcha'][type='text']"
     SUBMIT = FORM + " > input.submit_login[type='submit']"
     FIELDS = {
         "username": ("username", "text", "Tên đăng nhập"),
@@ -43,23 +40,22 @@ class LoginPage(BasePage):
     def selector_for(self, field):
         if field == "captcha":
             return self.CAPTCHA
-        suffix = "WITH_CAPTCHA" if self.captcha_visible() else "WITHOUT_CAPTCHA"
-        return getattr(self, field.upper() + "_" + suffix)
+        return getattr(self, field.upper())
 
     def verify_field(self, field):
         selector = self.selector_for(field)
         name, kind, placeholder = self.FIELDS[field]
         matches = self.driver.find_elements(By.CSS_SELECTOR, selector)
         if len(matches) != 1:
-            raise LocatorMismatch(f"{field}: supplied CSS selector matched {len(matches)} elements; expected exactly one: {selector}")
+            raise LocatorMismatch(f"{field}: CSS selector matched {len(matches)} elements; expected exactly one: {selector}")
         element = matches[0]
         actual = tuple(element.get_attribute(attr) for attr in ("name", "type", "placeholder"))
         if actual != (name, kind, placeholder):
-            raise LocatorMismatch(f"{field}: supplied selector identifies attributes {actual!r}, expected {(name, kind, placeholder)!r}")
+            raise LocatorMismatch(f"{field}: selector identifies attributes {actual!r}, expected {(name, kind, placeholder)!r}")
         return element
 
     def captcha_visible(self):
-        # Semantic lookup detects a misplaced CAPTCHA; never used to type or submit.
+        # Visibility determines whether this session can run CAPTCHA scenarios.
         semantic = self.driver.find_elements(By.CSS_SELECTOR, self.FORM + " input[name='captcha']")
         if not any(element.is_displayed() for element in semantic):
             return False
@@ -72,6 +68,11 @@ class LoginPage(BasePage):
         if captcha is not None:
             self.verify_field("captcha")
             actual["captcha"] = self.type(self.CAPTCHA, captcha)
+        self.last_input = dict(actual)
+        if username == self.settings.known_username and self.settings.known_username:
+            self.last_input.update(username="<confirmed test account>", password="<configured wrong password>")
+        if captcha:
+            self.last_input["captcha"] = "<supplied CAPTCHA code>"
         return actual
 
     def submit(self, enter=False):
@@ -115,7 +116,10 @@ class LoginPage(BasePage):
             matches = any(self.settings.patterns.get(category) and re.search(self.settings.patterns[category], text, re.I) for category in categories)
             if not native and not (new_response and matches):
                 return False
-            return any(e.is_displayed() for e in self.driver.find_elements(By.CSS_SELECTOR, self.FORM))
+            rejected = any(e.is_displayed() for e in self.driver.find_elements(By.CSS_SELECTOR, self.FORM))
+            if rejected:
+                self.last_observation = {"error_text": text, "expected_categories": list(categories), "native_validation": native, "new_response": new_response, "login_form_visible": True, "url": self.driver.current_url}
+            return rejected
         self.wait.until(rejection_observed, message=f"No new rejection matching categories {categories}; last error: {self.error_text()!r}")
 
     def assert_no_server_details(self):

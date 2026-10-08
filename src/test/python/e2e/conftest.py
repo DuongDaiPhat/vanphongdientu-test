@@ -21,12 +21,15 @@ def pytest_addoption(parser):
     parser.addoption("--allow-assisted", action="store_true", help="Enable manual CAPTCHA entry; run with -s")
     parser.addoption("--demo", action="store_true", help="Verify the suite on an isolated local reference form, not UTC")
     parser.addoption("--demo-defect", choices=["none", "captcha-bypass", "authentication-bypass", "wrong-message"], default="none")
+    parser.addoption("--html-report", default="", help="Write a self-contained HTML report to this path")
+    parser.addoption("--allow-live-case", action="append", choices=["TC07", "TC08", "TC12"], default=[], help="Explicitly enable one bounded payload/length case on the live target")
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "oracle(*categories): Required observed error categories")
     config.addinivalue_line("markers", "requires(*fields): Required settings values")
     config._login_rows = []
+    config._login_durations = {}
     config._login_started = datetime.now(timezone.utc).isoformat()
     root = Path(str(config.rootpath))
     try:
@@ -49,15 +52,12 @@ def pytest_collection_modifyitems(config, items):
     demo = config.getoption("--demo")
     for item in items:
         reasons = []
-        if item.get_closest_marker("test_env_only") and not (demo or (config.getoption("--allow-test-env") and settings.test_environment_allowed())):
+        case = re.search(r"tc\d{2}", item.name, re.I)
+        live_allowed = case is not None and case.group().upper() in config.getoption("--allow-live-case")
+        if item.get_closest_marker("test_env_only") and not (demo or live_allowed or (config.getoption("--allow-test-env") and settings.test_environment_allowed())):
             reasons.append("requires --allow-test-env, ENVIRONMENT=test and APPROVED_TEST_HOST matching a non-production target")
         if item.get_closest_marker("assisted") and not (demo or config.getoption("--allow-assisted")):
             reasons.append("requires CAPTCHA assistance (--allow-assisted -s or an official test provider)")
-        oracle = item.get_closest_marker("oracle")
-        if oracle:
-            missing = [name for name in oracle.args if not settings.patterns.get(name)]
-            if missing or not settings.error_selector:
-                reasons.append("unverified error oracle: " + ", ".join(missing or ["ERROR_SELECTOR"]))
         requires = item.get_closest_marker("requires")
         if requires:
             missing = [name for name in requires.args if not getattr(settings, name)]
@@ -93,6 +93,7 @@ def driver(request, settings):
 @pytest.fixture
 def login_page(request, driver, settings):
     page = LoginPage(driver, settings)
+    request.node._login_page = page
     if request.config.getoption("--demo"):
         url = request.config._demo_server.url_for(request.node.name)
     else:
@@ -106,6 +107,11 @@ def login_page(request, driver, settings):
         pytest.skip("SKIPPED: CAPTCHA is not visible in this fresh session")
     if not needs_captcha and visible and not resets_session:
         pytest.skip("SKIPPED: basic case requires CAPTCHA absent; CAPTCHA is visible")
+    oracle = request.node.get_closest_marker("oracle")
+    if oracle:
+        missing = [name for name in oracle.args if not settings.patterns.get(name)]
+        if missing or not settings.error_selector:
+            pytest.skip("BLOCKED: unverified error oracle: " + ", ".join(missing or ["ERROR_SELECTOR"]))
     return page
 
 
@@ -141,20 +147,29 @@ def captcha_solver(request, settings):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
+    config = item.config
+    config._login_durations[item.nodeid] = config._login_durations.get(item.nodeid, 0) + report.duration
     if report.when == "setup" and report.passed:
         return
     if report.when == "teardown" and not report.failed:
         return
-    config = item.config
     match = re.search(r"tc\d{2}", item.name, re.I)
     reason = str(report.longrepr) if report.longrepr else ""
     status = "BLOCKED" if report.skipped and "BLOCKED:" in reason else "SKIPPED" if report.skipped else "PASS" if report.passed else "FAIL"
     row = {"id": match.group().upper() if match else item.name, "test": item.nodeid, "phase": report.when, "status": status, "reason": reason, "duration_seconds": report.duration, "synthetic_data": getattr(item, "_synthetic_data", {}), "evidence": []}
     browser = getattr(item, "_login_driver", None)
+    page = getattr(item, "_login_page", None)
+    if page:
+        row["observed"] = getattr(page, "last_observation", {})
+        row["input"] = getattr(page, "last_input", {})
+        try:
+            row["captcha_visible"] = page.captcha_visible()
+        except Exception:
+            row["captcha_visible"] = None
     if browser:
         row["browser"] = browser.capabilities.get("browserName")
         row["browser_version"] = browser.capabilities.get("browserVersion")
-    if report.failed and browser:
+    if browser and (report.failed or config.getoption("--html-report")):
         path = config._login_settings.report_dir / (config._login_run_id + "-" + re.sub(r"[^\w.-]", "_", item.name) + "-" + report.when + ".png")
         try:
             browser.save_screenshot(str(path))
@@ -169,7 +184,9 @@ def pytest_runtest_makereport(item, call):
 def pytest_sessionfinish(session, exitstatus):
     config = session.config
     settings = config._login_settings
-    data = {"run_id": config._login_run_id, "started_utc": config._login_started, "target": settings.base_url, "environment": settings.environment, "demo": config.getoption("--demo"), "exit_code": int(exitstatus), "collected": session.testscollected, "counts": dict(Counter(row["status"] for row in config._login_rows)), "results": config._login_rows}
+    for row in config._login_rows:
+        row["duration_seconds"] = config._login_durations.get(row["test"], row["duration_seconds"])
+    data = {"run_id": config._login_run_id, "started_utc": config._login_started, "finished_utc": datetime.now(timezone.utc).isoformat(), "target": settings.base_url, "environment": settings.environment, "demo": config.getoption("--demo"), "exit_code": int(exitstatus), "collected": session.testscollected, "counts": dict(Counter(row["status"] for row in config._login_rows)), "results": config._login_rows}
     path = settings.report_dir / (config._login_run_id + "-results.json")
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     lines = ["# Login test execution", "", f"Target: {settings.base_url}", f"Reference form only: {data['demo']}", f"Started UTC: {data['started_utc']}", "", "| ID / variant | Status | Phase | Reason |", "| --- | --- | --- | --- |"]
@@ -177,6 +194,12 @@ def pytest_sessionfinish(session, exitstatus):
         reason = row["reason"].replace("|", "\\|").replace("\n", "<br>")
         lines.append(f"| {row['test'].split('::')[-1]} | {row['status']} | {row['phase']} | {reason} |")
     path.with_suffix(".md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if config.getoption("--html-report"):
+        from e2e.base.html_report import write_html_report
+        destination = Path(config.getoption("--html-report"))
+        if not destination.is_absolute():
+            destination = Path(str(config.rootpath)) / destination
+        write_html_report(data, destination)
 
 
 def pytest_unconfigure(config):

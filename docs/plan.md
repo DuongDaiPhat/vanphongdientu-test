@@ -10,19 +10,9 @@ Bảng yêu cầu sau khi thu hẹp còn **22 ca**, gồm **10 ca CAPTCHA**. ID 
 
 ## 2. Locator sử dụng
 
-Các selector và element dưới đây do người dùng cung cấp. Triển khai nguyên CSS selector bằng `By.CSS_SELECTOR` và chọn bộ theo trạng thái CAPTCHA. Kết quả kiểm chứng thực tế được tách khỏi thông tin người dùng cung cấp.
+Đã thay các selector phụ thuộc vị trí bằng thuộc tính name/type theo DOM thực tế, với sự cho phép cập nhật locator của người dùng. Bảng locator và thông báo lỗi đã xác minh nằm ở mục 3 của [requirements.md](requirements.md); profile chạy trực tiếp là config/utc.env.
 
-| Trạng thái | Trường | CSS selector | Element |
-| --- | --- | --- | --- |
-| Không có CAPTCHA | Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(2)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
-| Không có CAPTCHA | Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(3)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
-| Có CAPTCHA | Username | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(6)` | `<input placeholder="Tên đăng nhập" type="text" name="username">` |
-| Có CAPTCHA | Password | `body > div > div.main > div.right > div.form > form > input[type=password]:nth-child(7)` | `<input placeholder="Mật khẩu" type="password" name="userpwd">` |
-| Có CAPTCHA | CAPTCHA | `body > div > div.main > div.right > div.form > form > input[type=text]:nth-child(5)` | `<input placeholder="Mã bảo mật" type="text" name="captcha">` |
-
-Đặt các locator theo hai trạng thái trong `LoginPage`. Xác định CAPTCHA đang hiển thị bằng quan sát DOM trước khi chọn cặp selector; không dựa vào thứ tự chạy testcase. Trước khi nhập, kiểm tra selector khớp đúng một phần tử có `name`, `type`, `placeholder` tương ứng. Vì `nth-child` phụ thuộc vị trí DOM, kiểm tra cả khi CAPTCHA hiện và ẩn; không âm thầm thay selector nếu vị trí đổi. Khi CAPTCHA không hiển thị, chỉ các ca yêu cầu CAPTCHA được phân loại theo tiền điều kiện; Username/Password vẫn phải khớp chính xác.
-
-Locator nút submit, vùng lỗi, ảnh/challenge và refresh CAPTCHA cần khảo sát riêng. Chỉ dùng các thành phần này để thực thi và quan sát ca kiểm thử của ba trường trong phạm vi.
+Trang mới có Username/Password ở vị trí 1/2; lỗi được chèn sau submit làm chúng chuyển sang 2/3. LoginPage dùng cùng selector thuộc tính cho cả hai bố cục, vẫn kiểm tra đúng phần tử trước thao tác. CAPTCHA được nhận biết theo việc ô mã thực tế hiển thị.
 
 ## 3. Cấu trúc thư mục theo ảnh tham khảo
 
@@ -151,7 +141,7 @@ Trước mỗi commit: kiểm tra diff, thu thập test, chạy ca tương ứng
 
 ## 7. Lệnh chạy dự kiến
 
-Các lệnh đã được hỗ trợ. Chạy trên hệ thống UTC chỉ thực thi khi đủ điều kiện; mặc định các ca thiếu oracle được ghi BLOCKED trước khi mở browser. PowerShell tại thư mục dự án:
+Các lệnh đã được hỗ trợ. Chạy trên hệ thống UTC chỉ thực thi khi đủ điều kiện; ca thiếu oracle được ghi BLOCKED sau khi kiểm tra DOM/trạng thái CAPTCHA và trước khi submit. PowerShell tại thư mục dự án:
 
 ```powershell
 python -m venv .venv
@@ -175,14 +165,20 @@ Mỗi lần chạy ghi ID, biến thể, thời điểm, môi trường, browser
 - **Hoàn tất dự án kiểm thử:** cấu trúc Python đúng mục 3; cài đặt/thu thập test thành công; README đúng; ca bám ID, oracle, commit và ba trường trong phạm vi.
 - **Hoàn tất xác minh phạm vi:** các ca đủ điều kiện đã chạy, đối chiếu kết quả và có bằng chứng. Còn BLOCKED phải báo rõ phần thiếu, không tuyên bố đã xác minh toàn bộ CAPTCHA/chức năng.
 
-Đầu vào còn thiếu: kiểm chứng DOM của các selector; locator submit/lỗi/ảnh mã/refresh; Username tồn tại cho TC05; môi trường phù hợp cho payload và reset/kích hoạt; mã CAPTCHA thử nghiệm, TTL, chính sách refresh/replay, ngưỡng N. Có thể làm khung dự án và ca độc lập trong khi các mục này chưa có.
+Đầu vào còn thiếu: kiểm chứng DOM của các selector; ảnh mã/refresh CAPTCHA; Username tồn tại cho TC05; môi trường phù hợp cho payload và reset/kích hoạt; mã CAPTCHA thử nghiệm, TTL, chính sách refresh/replay, ngưỡng N. Có thể làm khung dự án và ca độc lập trong khi các mục này chưa có.
 
 ## 9. Tiến độ triển khai
 
 - Đã đánh lại bảng và tham chiếu thành TC01–TC22; TC19 có hai biến thể, tổng 23 lượt pytest.
 - Đã tạo môi trường Python, cài dependency, BaseTest, BasePage, LoginPage, fixture, cấu hình, báo cáo JSON/Markdown/JUnit và README.
-- Đã cập nhật hai bộ locator theo CAPTCHA; kiểm tra đúng name/type/placeholder, không fallback sang locator ngoài yêu cầu.
+- Đã cập nhật locator theo name/type sau khi người dùng cho phép sửa khác DOM; kiểm tra đúng name/type/placeholder trước thao tác.
 - Đã thêm mã thực thi cho mỗi ID, kiểm chứng trên form tham chiếu cục bộ và lưu từng testcase trong một commit tiếng Anh riêng.
 - Có công cụ kiểm tra DOM chỉ đọc và form tham chiếu cục bộ. Kết quả cục bộ không thay bằng chứng E2E trên UTC.
-- Trên UTC còn vướng locator không CAPTCHA khớp 0 phần tử; thiếu oracle, dữ liệu tài khoản tồn tại và điều kiện CAPTCHA nâng cao. Chưa hoàn tất mốc xác minh phạm vi trên UTC.
+- Đã xác minh locator mới, lỗi Username/Password/xác thực và chạy các ca đủ điều kiện trực tiếp trên UTC. Ca thiếu tài khoản, CAPTCHA, đặc tả hoặc chấp thuận payload vẫn được ghi rõ SKIPPED/BLOCKED.
 - Báo cáo chạy và các bước tiếp theo được cập nhật tại [execution.md](execution.md).
+
+## 10. Chạy trực tiếp và báo cáo HTML
+
+Dùng tools/run_utc.py để nạp profile lỗi đã xác minh và chạy trên UTC. Báo cáo HTML độc lập chứa tổng hợp trạng thái, dữ liệu nhập, thông báo thực tế, browser/version và ảnh nhúng; có lọc trạng thái và tìm testcase. Kết quả mới nhất: [utc_live_execution.md](utc_live_execution.md).
+
+Ba ca payload SQL/XSS và username dài hiện bị chặn trên production sau khi bộ xét duyệt tự động từ chối lệnh chạy; chỉ thực hiện thêm khi có chấp thuận rõ. Không dùng tùy chọn mở ca để vượt quyết định này. Những ca thông thường vẫn chạy trực tiếp.

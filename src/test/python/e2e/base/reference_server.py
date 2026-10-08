@@ -78,7 +78,7 @@ class ReferenceServer:
             return
         cookies = SimpleCookie(handler.headers.get("Cookie", ""))
         sid = cookies["reference_sid"].value if "reference_sid" in cookies else secrets.token_hex(12)
-        case = query.get("case", ["TC01"])[0]
+        case = query.get("case", [self.sessions.get(sid, {}).get("case", "TC01")])[0]
         if sid not in self.sessions:
             self.sessions[sid] = {"case": case, "attempts": 0}
             self.new_challenge(self.sessions[sid])
@@ -126,7 +126,7 @@ class ReferenceServer:
         body = f'''<!doctype html><html><head><meta charset="utf-8"><title>Local reference form</title></head><body>
 <div><div class="main"><div class="right"><div class="form">
 <div id="error" role="alert">{html.escape(error)}</div>
-<form method="post" action="{action}">
+<form method="post" action="/Login">
 {captcha_fields}
 <input placeholder="Tên đăng nhập" type="text" name="username">
 <input placeholder="Mật khẩu" type="password" name="userpwd">
