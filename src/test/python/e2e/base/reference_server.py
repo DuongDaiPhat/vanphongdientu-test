@@ -85,11 +85,12 @@ class ReferenceServer:
         state = self.sessions[sid]
         if query.get("reset"):
             state["attempts"] = 0
+            state["reset_done"] = True
             self.new_challenge(state)
         if query.get("refresh"):
             self.new_challenge(state)
         number = int(case[2:])
-        captcha = number >= 13 and (number != 22 or state["attempts"] >= 2)
+        captcha = number >= 13 and (number != 22 or not state.get("reset_done") or state["attempts"] >= 2)
         error = ""
         authenticated = False
         if posted:

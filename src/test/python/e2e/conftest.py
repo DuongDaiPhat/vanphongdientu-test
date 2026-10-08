@@ -100,9 +100,11 @@ def login_page(request, driver, settings):
     page.open(url)
     visible = page.captcha_visible()
     needs_captcha = bool(request.node.get_closest_marker("captcha"))
+    prerequisites = request.node.get_closest_marker("requires")
+    resets_session = prerequisites is not None and "reset_selector" in prerequisites.args
     if needs_captcha and not visible:
         pytest.skip("SKIPPED: CAPTCHA is not visible in this fresh session")
-    if not needs_captcha and visible:
+    if not needs_captcha and visible and not resets_session:
         pytest.skip("SKIPPED: basic case requires CAPTCHA absent; CAPTCHA is visible")
     return page
 
