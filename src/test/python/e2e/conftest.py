@@ -24,7 +24,7 @@ def pytest_addoption(parser):
     parser.addoption("--demo", action="store_true", help="Verify the suite on an isolated local reference form, not UTC")
     parser.addoption("--demo-defect", choices=["none", "captcha-bypass", "authentication-bypass", "wrong-message"], default="none")
     parser.addoption("--html-report", default="", help="Write a self-contained HTML report to this path")
-    parser.addoption("--allow-live-case", action="append", choices=["TC07", "TC08", "TC12", "TC22"], default=[], help="Explicitly enable one bounded case on the live target")
+    parser.addoption("--allow-live-case", action="append", choices=["TC07", "TC08", "TC12", "TC21", "TC22"], default=[], help="Explicitly enable one bounded case on the live target")
 
 
 def pytest_configure(config):

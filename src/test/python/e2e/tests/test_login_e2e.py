@@ -176,6 +176,9 @@ class TestLoginE2E:
         login_page.fill(*credentials, captcha=code)
         login_page.submit()
         login_page.assert_rejected("auth", require_server=True)
+        new_code = captcha_solver(login_page)
+        if code == new_code:
+            pytest.skip("BLOCKED: regenerated challenge has the same answer; cannot distinguish replay rejection")
         login_page.fill(*credentials, captcha=code)
         login_page.submit()
         login_page.assert_rejected("captcha", require_server=True)

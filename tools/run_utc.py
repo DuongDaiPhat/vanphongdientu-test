@@ -22,6 +22,7 @@ def main():
     parser.add_argument("--captcha-inbox", default="", help="Receive human answers through challenge-specific JSON files (requires --assisted)")
     parser.add_argument("--prepare-captcha", action="store_true", help="Prepare CAPTCHA cases using at most five invalid synthetic logins per fresh session")
     parser.add_argument("--check-activation", action="store_true", help="Enable bounded TC22 using a confirmed threshold and reset strategy")
+    parser.add_argument("--check-replay", action="store_true", help="Enable TC21 after the target's CAPTCHA regeneration policy is confirmed")
     args = parser.parse_args()
     if args.captcha_inbox and not args.assisted:
         parser.error("--captcha-inbox requires --assisted")
@@ -42,6 +43,8 @@ def main():
         arguments += ["--prepare-captcha"]
     if args.check_activation:
         arguments += ["--allow-live-case=TC22"]
+    if args.check_replay:
+        arguments += ["--allow-live-case=TC21"]
     return pytest.main(arguments)
 
 
