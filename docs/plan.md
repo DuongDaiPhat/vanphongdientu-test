@@ -6,11 +6,11 @@ Xây dựng Selenium Project bằng **Python + Selenium 4 + pytest** để kiể
 
 Phạm vi chỉ gồm **Username, Password, CAPTCHA** và thao tác submit bằng nút Đăng nhập hoặc phím Enter. Chỉ giữ các negative testcase tương ứng; không cần đăng nhập thành công. Ca cần Username tồn tại hoặc mã CAPTCHA đúng được ghi phụ thuộc riêng, không giả lập kết quả PASS khi thiếu dữ liệu.
 
-Bảng yêu cầu sau khi thu hẹp còn **22 ca**, gồm **10 ca CAPTCHA**. ID được đánh lại liên tiếp từ TC01 đến TC22 theo thứ tự trong bảng. Repository hiện chưa có mã nguồn kiểm thử; tài liệu này mô tả cấu trúc và các bước sẽ triển khai.
+Bảng yêu cầu sau khi thu hẹp còn **22 ca**, gồm **10 ca CAPTCHA**. ID được đánh lại liên tiếp từ TC01 đến TC22 theo thứ tự trong bảng. Repository đã có mã nguồn cho 22 ID và cấu trúc dưới đây; tiến độ và hạn chế xác minh trên UTC nằm ở mục 9 và [execution.md](execution.md).
 
 ## 2. Locator sử dụng
 
-Các selector và element dưới đây do người dùng cung cấp. Triển khai nguyên CSS selector bằng `By.CSS_SELECTOR`, chưa coi là đã chạy kiểm chứng trên trình duyệt.
+Các selector và element dưới đây do người dùng cung cấp. Triển khai nguyên CSS selector bằng `By.CSS_SELECTOR` và chọn bộ theo trạng thái CAPTCHA. Kết quả kiểm chứng thực tế được tách khỏi thông tin người dùng cung cấp.
 
 | Trạng thái | Trường | CSS selector | Element |
 | --- | --- | --- | --- |
@@ -36,7 +36,8 @@ vanphongdientu-test/
 ├── .env.example
 ├── docs/
 │   ├── requirements.md
-│   └── plan.md
+│   ├── plan.md
+│   └── execution.md
 ├── src/
 │   └── test/
 │       └── python/
@@ -45,7 +46,9 @@ vanphongdientu-test/
 │               ├── conftest.py          # Fixture pytest, cấu hình, bằng chứng lỗi
 │               ├── base/
 │               │   ├── __init__.py
-│               │   └── base_test.py     # BaseTest: WebDriver, timeout, cleanup
+│               │   ├── base_test.py     # BaseTest: WebDriver, timeout, cleanup
+│               │   ├── settings.py      # Cấu hình .env và biến môi trường
+│               │   └── reference_server.py # Form tham chiếu cục bộ
 │               ├── pages/
 │               │   ├── __init__.py
 │               │   ├── base_page.py     # BasePage: wait, click, type, đọc nội dung
@@ -53,6 +56,8 @@ vanphongdientu-test/
 │               └── tests/
 │                   ├── __init__.py
 │                   └── test_login_e2e.py # TestLoginE2E: negative login tests
+├── tools/
+│   └── probe_login.py                    # Kiểm tra DOM chỉ đọc
 └── reports/                             # Sinh khi chạy, không commit
 ```
 
@@ -89,7 +94,7 @@ markers =
 
 Import từ package `e2e`, ví dụ `from e2e.pages.login_page import LoginPage`. `conftest.py` đặt ở thư mục cha `e2e/` để pytest áp dụng fixture cho các test bên dưới; `base_test.py` không bị thu thập thành testcase.
 
-`requirements.txt` chốt phiên bản sau kiểm tra tương thích. `.env.example` chỉ chứa cấu hình mẫu: URL, browser, headless, timeout, môi trường; triển khai rõ cơ chế đọc file/biến môi trường. Không chứa tài khoản thật. Chrome là browser mặc định, hỗ trợ chế độ có giao diện và headless.
+`requirements.txt` đã chốt Selenium 4.50.0 và pytest 9.1.1; đã kiểm tra trên Python 3.14 và Chrome 154. `.env.example` chỉ chứa cấu hình mẫu: URL, browser, headless, timeout, môi trường; triển khai rõ cơ chế đọc file/biến môi trường. Không chứa tài khoản thật. Chrome là browser mặc định, hỗ trợ chế độ có giao diện và headless.
 
 ## 4. Thứ tự thực hiện và đầu ra
 
@@ -116,7 +121,7 @@ Import từ package `e2e`, ví dụ `from e2e.pages.login_page import LoginPage`
 
 ## 6. Kế hoạch Git
 
-Hiện `.gitignore` chứa `docs/`. Khi triển khai lưu lịch sử, điều chỉnh ignore để theo dõi tài liệu, đồng thời bỏ qua môi trường ảo, `.env`, cache, báo cáo và screenshot. File bị ignore chưa được coi là đã commit.
+Đã cập nhật `.gitignore`: theo dõi `docs/`; bỏ qua môi trường ảo, `.env`, cache, báo cáo và screenshot. Nhánh triển khai là `codex/login-negative-tests`; mỗi ID có commit riêng sau khi kiểm chứng trên form tham chiếu cục bộ.
 
 Commit tài liệu/hạ tầng tách riêng:
 
@@ -146,7 +151,7 @@ Trước mỗi commit: kiểm tra diff, thu thập test, chạy ca tương ứng
 
 ## 7. Lệnh chạy dự kiến
 
-Các lệnh sẽ được hỗ trợ sau khi tạo dự án, **chưa chạy được với repository hiện tại**. PowerShell tại thư mục dự án:
+Các lệnh đã được hỗ trợ. Chạy trên hệ thống UTC chỉ thực thi khi đủ điều kiện; mặc định các ca thiếu oracle được ghi BLOCKED trước khi mở browser. PowerShell tại thư mục dự án:
 
 ```powershell
 python -m venv .venv
@@ -172,6 +177,12 @@ Mỗi lần chạy ghi ID, biến thể, thời điểm, môi trường, browser
 
 Đầu vào còn thiếu: kiểm chứng DOM của các selector; locator submit/lỗi/ảnh mã/refresh; Username tồn tại cho TC05; môi trường phù hợp cho payload và reset/kích hoạt; mã CAPTCHA thử nghiệm, TTL, chính sách refresh/replay, ngưỡng N. Có thể làm khung dự án và ca độc lập trong khi các mục này chưa có.
 
-Yêu cầu hiện tại chỉ cập nhật tài liệu và cấu trúc dự kiến trong plan; chưa tạo project, thực thi testcase hoặc tạo commit.
+## 9. Tiến độ triển khai
 
-
+- Đã đánh lại bảng và tham chiếu thành TC01–TC22; TC19 có hai biến thể, tổng 23 lượt pytest.
+- Đã tạo môi trường Python, cài dependency, BaseTest, BasePage, LoginPage, fixture, cấu hình, báo cáo JSON/Markdown/JUnit và README.
+- Đã cập nhật hai bộ locator theo CAPTCHA; kiểm tra đúng name/type/placeholder, không fallback sang locator ngoài yêu cầu.
+- Đã thêm mã thực thi cho mỗi ID, kiểm chứng trên form tham chiếu cục bộ và lưu từng testcase trong một commit tiếng Anh riêng.
+- Có công cụ kiểm tra DOM chỉ đọc và form tham chiếu cục bộ. Kết quả cục bộ không thay bằng chứng E2E trên UTC.
+- Trên UTC còn vướng locator không CAPTCHA khớp 0 phần tử; thiếu oracle, dữ liệu tài khoản tồn tại và điều kiện CAPTCHA nâng cao. Chưa hoàn tất mốc xác minh phạm vi trên UTC.
+- Báo cáo chạy và các bước tiếp theo được cập nhật tại [execution.md](execution.md).

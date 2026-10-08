@@ -13,7 +13,7 @@ Tạo Selenium Project tự động kiểm thử đăng nhập thất bại tạ
 
 ## 2. Căn cứ, dữ liệu và oracle
 
-Locator và HTML của ba trường dưới đây do người dùng cung cấp trong lần cập nhật ngày 08/10/2026. Chưa chạy Selenium để xác minh selector, submit hoặc thông báo lỗi thực tế.
+Locator và HTML do người dùng cung cấp, gồm hai bộ theo trạng thái CAPTCHA. Đã kiểm tra Selenium chỉ đọc ngày 08/10/2026: phiên mới trên UTC không có CAPTCHA; selector Username (2) và Password (3) đều khớp 0 phần tử. Chưa submit đăng nhập hoặc xác minh thông báo lỗi thực tế; xem [execution.md](execution.md).
 
 ### Quy ước dữ liệu
 
@@ -34,11 +34,11 @@ Mỗi ca bắt đầu bằng phiên trình duyệt mới, mở `/Login`, chờ f
 - **O3 — CAPTCHA:** có tín hiệu challenge chưa hoàn tất hoặc lỗi CAPTCHA tương ứng; vẫn chưa xác thực. “Sai tài khoản” đơn thuần không chứng minh CAPTCHA hoạt động.
 - Chốt locator, nội dung lỗi và dấu hiệu xác thực trước khi triển khai assertion. Thiếu oracle thì BLOCKED, không nới assertion chỉ để PASS.
 - CAPTCHA không xuất hiện: ca yêu cầu CAPTCHA là SKIPPED vì không áp dụng trong phiên. CAPTCHA có nhưng thiếu dữ liệu/đặc tả/cơ chế thử: BLOCKED. Nếu pytest biểu diễn cả hai bằng skip, báo cáo phải giữ riêng phân loại và lý do.
-- PASS/FAIL chỉ ghi sau thực thi. Trạng thái trong bảng là trạng thái lập kế hoạch.
+- PASS/FAIL chỉ ghi sau thực thi. Cả 22 ID đã có mã test; trạng thái trong bảng mô tả điều kiện còn thiếu trên hệ thống UTC, không phải trạng thái triển khai mã. Kết quả form tham chiếu cục bộ được báo riêng.
 
 ## 3. Locator do người dùng cung cấp
 
-Dùng nguyên CSS selector dưới đây với Selenium `By.CSS_SELECTOR`. HTML ghi nhận đúng theo dữ liệu người dùng cung cấp, chưa phải kết quả chạy kiểm chứng.
+Dùng nguyên CSS selector dưới đây với Selenium `By.CSS_SELECTOR`. HTML ghi nhận đúng theo dữ liệu người dùng cung cấp. Kết quả kiểm chứng trên hệ thống đích được ghi riêng, không thay selector ngoài hai bộ đã được chỉ định.
 
 | Trạng thái | Trường | CSS selector | Element |
 | --- | --- | --- | --- |
@@ -92,7 +92,4 @@ Locator hỗ trợ thao tác submit và quan sát kết quả:
 - Các ca trong phạm vi có oracle/tiền điều kiện đã xác nhận được triển khai, mỗi ID một commit riêng. Ca nhiều biến thể parametrized trong cùng commit ID đó.
 - Chỉ triển khai các ID còn trong bảng; ca thiếu điều kiện được SKIPPED/BLOCKED rõ lý do, không coi là đã kiểm thử.
 - Báo cáo có ID, môi trường, thời điểm, kết quả, lý do skip/block và bằng chứng lỗi. Còn BLOCKED thì ghi phạm vi chưa xác minh, không tuyên bố hoàn tất toàn bộ kiểm thử.
-- Kế hoạch chi tiết: [plan.md](plan.md). Bước hiện tại chỉ hoàn thiện yêu cầu và kế hoạch, chưa triển khai hoặc thực thi Selenium.
-
-
-
+- Kế hoạch chi tiết: [plan.md](plan.md). Đã triển khai Selenium và kiểm chứng mã trên form tham chiếu cục bộ; kiểm thử đầy đủ trên UTC còn phụ thuộc locator, oracle, dữ liệu và điều kiện CAPTCHA. Báo cáo: [execution.md](execution.md).
