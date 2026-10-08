@@ -1,0 +1,202 @@
+"""Negative login scenarios TC01-TC22; each ID has its own commit."""
+
+import pytest
+
+
+@pytest.mark.negative
+class TestLoginE2E:
+
+    @pytest.mark.oracle("username", "password")
+    def test_tc01_empty_credentials(self, login_page):
+        login_page.fill("", "")
+        login_page.submit()
+        login_page.assert_rejected("username", "password")
+
+    @pytest.mark.oracle("username")
+    def test_tc02_missing_username(self, login_page, credentials):
+        login_page.fill("", credentials[1])
+        login_page.submit()
+        login_page.assert_rejected("username")
+
+    @pytest.mark.oracle("password")
+    def test_tc03_missing_password(self, login_page, credentials):
+        login_page.fill(credentials[0], "")
+        login_page.submit()
+        login_page.assert_rejected("password")
+
+    @pytest.mark.oracle("auth")
+    def test_tc04_invalid_credentials(self, login_page, credentials):
+        login_page.fill(*credentials)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.oracle("auth")
+    @pytest.mark.requires("known_username", "known_wrong_password")
+    def test_tc05_existing_username_wrong_password(self, login_page, settings):
+        login_page.fill(settings.known_username, settings.known_wrong_password)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.oracle("auth")
+    def test_tc06_padded_username(self, login_page, credentials):
+        login_page.fill("  " + credentials[0] + "  ", credentials[1])
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.security
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth")
+    def test_tc07_sql_payload(self, login_page):
+        payload = "' OR '1'='1"
+        login_page.fill(payload, payload)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+        login_page.assert_no_server_details()
+
+    @pytest.mark.security
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth")
+    def test_tc08_xss_payload(self, login_page, credentials):
+        login_page.fill("<script>alert('qa_xss')</script>", credentials[1])
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+        login_page.assert_no_server_details()
+
+    @pytest.mark.oracle("auth")
+    def test_tc09_enter_submission(self, login_page, credentials):
+        login_page.fill(*credentials)
+        login_page.submit(enter=True)
+        login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.oracle("username", "auth")
+    def test_tc10_whitespace_username(self, login_page, credentials):
+        login_page.fill("   ", credentials[1])
+        login_page.submit()
+        login_page.assert_rejected("username", "auth")
+
+    @pytest.mark.oracle("password", "auth")
+    def test_tc11_whitespace_password(self, login_page, credentials):
+        login_page.fill(credentials[0], "   ")
+        login_page.submit()
+        login_page.assert_rejected("password", "auth")
+
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("username", "auth")
+    def test_tc12_long_username(self, login_page, credentials, request):
+        actual = login_page.fill("a" * 256, credentials[1])
+        request.node._synthetic_data["actual_username_length"] = len(actual["username"])
+        login_page.submit()
+        login_page.assert_rejected("username", "auth")
+        login_page.assert_no_server_details()
+
+    @pytest.mark.captcha
+    @pytest.mark.oracle("captcha")
+    def test_tc13_empty_captcha(self, login_page, credentials):
+        login_page.fill(*credentials, captcha="")
+        login_page.submit()
+        login_page.assert_rejected("captcha")
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("captcha")
+    def test_tc14_incorrect_captcha(self, login_page, credentials, captcha_solver):
+        wrong_code = captcha_solver(login_page, valid=False)
+        login_page.fill(*credentials, captcha=wrong_code)
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.oracle("captcha")
+    def test_tc15_whitespace_captcha(self, login_page, credentials):
+        login_page.fill(*credentials, captcha="   ")
+        login_page.submit()
+        login_page.assert_rejected("captcha")
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("captcha")
+    @pytest.mark.requires("captcha_image_selector", "captcha_refresh_selector")
+    def test_tc16_refreshed_captcha(self, login_page, credentials, captcha_solver):
+        old_code = captcha_solver(login_page)
+        login_page.refresh_challenge()
+        new_code = captcha_solver(login_page)
+        if old_code == new_code:
+            pytest.skip("BLOCKED: refreshed challenge has the same answer; cannot distinguish rejection")
+        login_page.fill(*credentials, captcha=old_code)
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("auth")
+    @pytest.mark.requires("captcha_no_expiry")
+    def test_tc17_unchanged_captcha_after_wait(self, login_page, credentials, captcha_solver, request):
+        code = captcha_solver(login_page)
+        seconds = login_page.wait_without_refresh()
+        request.node._synthetic_data["captcha_observation_seconds"] = seconds
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("auth")
+    def test_tc18_valid_captcha_invalid_credentials(self, login_page, credentials, captcha_solver):
+        code = captcha_solver(login_page)
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.oracle("username", "password")
+    @pytest.mark.parametrize("missing", ["username", "password"])
+    def test_tc19_valid_captcha_missing_credentials(self, login_page, credentials, captcha_solver, missing):
+        code = captcha_solver(login_page)
+        username, password = credentials
+        login_page.fill("" if missing == "username" else username,
+                        "" if missing == "password" else password, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected(missing)
+
+    @pytest.mark.captcha
+    @pytest.mark.oracle("captcha")
+    def test_tc20_enter_without_captcha(self, login_page, credentials):
+        login_page.fill(*credentials, captcha="")
+        login_page.submit(enter=True)
+        login_page.assert_rejected("captcha")
+
+    @pytest.mark.captcha
+    @pytest.mark.assisted
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth", "captcha")
+    @pytest.mark.requires("captcha_single_use")
+    def test_tc21_replayed_captcha(self, login_page, credentials, captcha_solver):
+        code = captcha_solver(login_page)
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
+        new_code = captcha_solver(login_page)
+        if code == new_code:
+            pytest.skip("BLOCKED: regenerated challenge has the same answer; cannot distinguish replay rejection")
+        login_page.fill(*credentials, captcha=code)
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
+
+    @pytest.mark.test_env_only
+    @pytest.mark.oracle("auth", "captcha")
+    @pytest.mark.requires("trigger_attempts", "reset_strategy")
+    def test_tc22_captcha_activation(self, login_page, credentials, settings):
+        attempts = settings.trigger_attempts
+        if attempts + 1 > settings.max_login_attempts:
+            pytest.skip("BLOCKED: configured CAPTCHA threshold exceeds the total submission budget")
+        login_page.reset_attempts()
+        assert not login_page.captcha_visible(), "CAPTCHA already visible after resetting the test session"
+        for index in range(attempts):
+            login_page.fill(*credentials)
+            login_page.submit()
+            login_page.assert_rejected("auth", require_server=True)
+            assert login_page.captcha_visible() == (index + 1 == attempts), "CAPTCHA activation did not match the confirmed threshold"
+        login_page.fill(*credentials, captcha="")
+        login_page.submit()
+        login_page.assert_rejected("captcha", require_server=True)
