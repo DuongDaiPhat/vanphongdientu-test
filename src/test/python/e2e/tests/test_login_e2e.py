@@ -23,3 +23,9 @@ class TestLoginE2E:
         login_page.fill(credentials[0], "")
         login_page.submit()
         login_page.assert_rejected("password")
+
+    @pytest.mark.oracle("auth")
+    def test_tc04_invalid_credentials(self, login_page, credentials):
+        login_page.fill(*credentials)
+        login_page.submit()
+        login_page.assert_rejected("auth", require_server=True)
